@@ -1,0 +1,762 @@
+{
+  "name": "Wise Invoices",
+  "nodes": [
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1JBPaA_3xFfictaJcYZSvCSk0VJVzeNJAMFdu0fcQ_Yw",
+          "mode": "list",
+          "cachedResultName": "verified vendors",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1JBPaA_3xFfictaJcYZSvCSk0VJVzeNJAMFdu0fcQ_Yw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1JBPaA_3xFfictaJcYZSvCSk0VJVzeNJAMFdu0fcQ_Yw/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.6,
+      "position": [
+        -420,
+        1220
+      ],
+      "id": "b6906e15-fd98-4c2d-ac88-8e06e2048da4",
+      "name": "Google Sheets2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eTEEqODMwQSFJuL0",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1560,
+        1160
+      ],
+      "id": "25cf1402-ec43-412d-b404-73071384692f",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "C5jZvsds1nBxObxf",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -800,
+        1160
+      ],
+      "id": "704a3bd2-0c18-43bf-9bc5-5f7a2dd505f0",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-3.5-turbo",
+          "mode": "list",
+          "cachedResultName": "GPT-3.5-TURBO"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.text }}\n\nExtract the following fields from this invoice:\n\n- invoice_id  \n- invoice_date  \n- due_date  \n- vendor_name  \n- SWIFT  \n- routing_number  \n- account_number  \n- account_holder_name  \n- total_amount  \n- description  \n- contact_email  \n\nOnly extract these fields. If any value is missing, leave it blank.\n\nNext, check if either the `account_number` or `account_holder_name` matches any row in the connected vendor sheet.\n\nIf a match is found:\n- Set `\"verified\"` to `true`\n- Include the full matched vendor row in a new key called `\"matched_vendor\"`.\n\nIf no match is found:\n- Set `\"verified\"` to `false`\n- Leave `\"matched_vendor\"` empty or omit it.\n\nReturn the final result as a single clean JSON object with exactly these keys:\n- All extracted fields (as listed above)\n- `verified`\n- `matched_vendor` (only if matched)\n\nDo not include any extra commentary or explanation. Keep output strictly as JSON."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -580,
+        1000
+      ],
+      "id": "00ec62c8-474f-4613-bc24-97f73e65d960",
+      "name": "OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "CaOX4TAH3eH8PpkK",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.message.content.trim();\n\nconst parts = raw\n  .replace(/}\\s*{/g, '}|{')\n  .split('|')\n  .map(str => JSON.parse(str));\n\nreturn parts.map(item => ({ json: item }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        1140
+      ],
+      "id": "360e347f-2652-4a5a-b99b-b5e12248ffae",
+      "name": "formater"
+    },
+    {
+      "parameters": {
+        "resource": "quote",
+        "operation": "create",
+        "profileId": "={{ $json.matched_vendor.profile }}",
+        "targetAccountId": "={{ $json.matched_vendor.id }}",
+        "amount": "={{ $json.total_amount.replace(/[^0-9.]/g, '') }}",
+        "sourceCurrency": "=USD",
+        "targetCurrency": "=USD"
+      },
+      "type": "n8n-nodes-base.wise",
+      "typeVersion": 1,
+      "position": [
+        360,
+        960
+      ],
+      "id": "e2d918f1-7b86-47bc-ad8b-d08bc1b58055",
+      "name": "Create Quote",
+      "credentials": {
+        "wiseApi": {
+          "id": "PSzomFL37Ta1XuY9",
+          "name": "Wise account 6"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        280,
+        1360
+      ],
+      "id": "c9522294-a51a-4f1e-a8d7-0875a401301c",
+      "name": "Merge-n"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cc258d63-8665-4f8b-a3f2-e8f9f21c7e53",
+              "leftValue": "={{ $json.verified }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        60,
+        1140
+      ],
+      "id": "effabd76-40ec-497e-a901-6f2d01d4bf7b",
+      "name": "check if approved"
+    },
+    {
+      "parameters": {
+        "resource": "transfer",
+        "operation": "create",
+        "profileId": "={{ $json.profile }}",
+        "quoteId": "={{ $json.id }}",
+        "targetAccountId": "={{ $('Mergev').item.json.matched_vendor.id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.wise",
+      "typeVersion": 1,
+      "position": [
+        700,
+        960
+      ],
+      "id": "eab70774-9d66-4d5c-969b-14145f429ce1",
+      "name": "CreateTransfer",
+      "credentials": {
+        "wiseApi": {
+          "id": "PSzomFL37Ta1XuY9",
+          "name": "Wise account 6"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        60,
+        860
+      ],
+      "id": "05dfb542-b403-4fc3-b3a9-370ee4e7ca71",
+      "name": "Mergev"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Gmail Trigger').item.json.to.value[0].address }}",
+        "subject": "Action Required Vendor Approval for Payment",
+        "message": "=Hi,  A new invoice from vendor {{ $('Gmail Trigger').item.json.from.value[0].address }} . This vendor is not on the approved list.  Please review and approve manually if valid.  Thanks, Automation System ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        700,
+        1360
+      ],
+      "id": "0ff0c271-5c1d-4815-b223-9bf7d26c79d4",
+      "name": "Send Email",
+      "webhookId": "0c588ba5-7123-463f-b63a-af70652b7001",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "C5jZvsds1nBxObxf",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "geordie@1stop.io",
+        "subject": "=Invoice Review Needed: {{ $('Mergev').item.json.vendor_name }}  – {{ $('Mergev').item.json.total_amount }}",
+        "message": "=Hi Geordie,\nA new invoice has been received and parsed. Please review the details below and approve it manually before transfer.\n\nVendor: {{ $('Mergev').item.json.vendor_name }}\nInvoice {{ $('Mergev').item.json.invoice_id }}\nAmount: {{ $('Mergev').item.json.total_amount }}\nSWIFT No: {{ $('Mergev').item.json.SWIFT }}\nDate: {{ $('Mergev').item.json.due_date }}\nTo approve, please mark the corresponding row as Approved = TRUE in wise.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1500,
+        780
+      ],
+      "id": "f3ef336e-5606-41d9-b0c2-1fa494dfd247",
+      "name": "Request to client for Review",
+      "webhookId": "f6474959-eb1b-4d9f-aed1-565a27a347d9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "C5jZvsds1nBxObxf",
+          "name": "Gmail account 2"
+        }
+      },
+      "disabled": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Gmail Trigger').item.json.from.value[0].address }}",
+        "subject": "Invoice Received – Pending Approval by Duxre Team",
+        "message": "=Hi {{ $json.account_holder_name || '' }},  We’ve received and processed your invoice successfully.\nHere are the details:  \n- Invoice: {{ $json.invoice_id }}\n- Amount: {{ $json.total_amount }}  \n- Status: Pending Approval\nYou will receive a follow-up once the payment is approved.  Thanks,\nDuxre Accounts Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -200,
+        1400
+      ],
+      "id": "1f2a7d0e-c9b9-45b8-afd0-4528bd68942b",
+      "name": "Send Email Confirmation to Vendor",
+      "webhookId": "c5ac9a40-c69e-4980-9c16-84b3b92ed862",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "C5jZvsds1nBxObxf",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "912feafc-0c2b-4bad-9977-ed6a6b2350d9",
+              "leftValue": false,
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -980,
+        1000
+      ],
+      "id": "e5d4b927-a5d3-4e49-95c7-3b81a2b2fff8",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = [];\n\nfor (const item of items) {\n  if (!item.binary) continue;\n\n  for (const [key, binaryData] of Object.entries(item.binary)) {\n    output.push({\n      json: {\n        originalEmailId: item.json.id || null,\n        attachmentName: binaryData.fileName,\n      },\n      binary: {\n        data: binaryData,\n      }\n    });\n  }\n}\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1360,
+        980
+      ],
+      "id": "a82e00e3-f3e7-45a7-ae2f-67dabcb61ca1",
+      "name": "Split Attachments"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1180,
+        1160
+      ],
+      "id": "d9d118af-1de0-4d03-b22f-0ad7e901a6c0",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1LE-MQcg_kELEFaB7ezfvleyW7KgFeFno6r_qylbAF74",
+          "mode": "list",
+          "cachedResultName": "Confirmation EMail",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LE-MQcg_kELEFaB7ezfvleyW7KgFeFno6r_qylbAF74/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1LE-MQcg_kELEFaB7ezfvleyW7KgFeFno6r_qylbAF74/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email": "={{ $('Gmail Trigger').item.json.from.value[0].address }}",
+            "Account_id": "={{ $('Mergev').item.json.matched_vendor.id }}",
+            "Profile_id": "={{ $('Mergev').item.json.matched_vendor.profile }}"
+          },
+          "matchingColumns": [
+            "Profile_id"
+          ],
+          "schema": [
+            {
+              "id": "Profile_id",
+              "displayName": "Profile_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Account_id",
+              "displayName": "Account_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email",
+              "displayName": "email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1520,
+        1080
+      ],
+      "id": "99f7d861-1e18-4217-9073-21a10e5574dd",
+      "name": "Google Sheets1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "eTEEqODMwQSFJuL0",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.transferwise.com/v1/transfers",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer b32e0e21-6354-42ab-baed-1031ba57e015"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"source\": \"balance\",\n  \"targetAccount\": \"{{ $('Mergev').item.json.matched_vendor.id }}\",\n  \"quoteUuid\": \"{{ $json.quote_id }}\",\n  \"customerTransactionId\": \"my-unique-transfer-id-123\",\n  \"details\": {\n    \"reference\": \"{{ $('Mergev').item.json.account_holder_name }}\",\n    \"transferPurpose\": \"verification.transfers.purpose.pay.bills\",\n    \"transferPurposeSubTransferPurpose\": \"verification.sub.transfers.purpose.pay.interpretation.service\",\n    \"sourceOfFunds\": \"verification.source.of.funds.other\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        720
+      ],
+      "id": "2a5ead13-4da0-4b8f-89d9-fb57fd8b5de6",
+      "name": "HTTP Request",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const quote = $json;\nconst balanceOption = quote.paymentOptions.find(p => p.payIn === \"BALANCE\");\nconst uniqueTransactionId = Date.now().toString() + Math.random().toString(36).substring(2, 6);\nreturn [{\n  quote_id: quote.id,\n  recipient_id: quote.recipientId,\n  payIn: balanceOption?.payIn,\n  targetAmount: balanceOption?.targetAmount,\n  customerTransactionId: uniqueTransactionId\n\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        740
+      ],
+      "id": "9b5181a2-a61a-49f9-acea-23a046f493bf",
+      "name": "Code",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.sandbox.transferwise.tech/v3/profiles/{{ $json.matched_vendor.profile }}/quotes",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer b32e0e21-6354-42ab-baed-1031ba57e015"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"sourceCurrency\": \"USD\",\n  \"targetCurrency\": \"USD\",\n  \"sourceAmount\": 20,\n  \"payOut\": \"BALANCE\",\n  \"preferredPayIn\": \"BALANCE\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        380,
+        720
+      ],
+      "id": "03f0c34d-199b-48a7-85bf-3d3aa445a2c4",
+      "name": "HTTP Request1",
+      "disabled": true
+    }
+  ],
+  "pinData": {
+    "Extract from File": [
+      {
+        "json": {
+          "numpages": 1,
+          "numrender": 1,
+          "info": {
+            "PDFFormatVersion": "1.4",
+            "Language": "en",
+            "EncryptFilterName": null,
+            "IsLinearized": false,
+            "IsAcroFormPresent": false,
+            "IsXFAPresent": false,
+            "IsCollectionPresent": false,
+            "IsSignaturesPresent": false,
+            "Title": "Red And White Simple Business Invoice",
+            "Creator": "Canva",
+            "Producer": "Canva",
+            "CreationDate": "D:20250619065958+00'00'",
+            "ModDate": "D:20250619065958+00'00'",
+            "Keywords": "DAGqxm6R-3k,BAGpajgbeF4,0",
+            "Author": "Brandon Bagwell"
+          },
+          "text": "Description Quantity Rate Total\nService 1 $8,000 $8,000\nTotal $8,000\nINVOICE\n#34381\nDate Issued: \nJune 21 2025\nst\nBill to: \nTest Ventures\n18A South Rd, Paget, PG04, Bermuda\nThank you for the payment\nPAYMENT INFO\nChase Bank\nAccount Number: 2901761688\nRouting Number: 111000614\nBrandon Bagwell\n3438 Rich Radish Rd, Richmond, TX, 77406\nPay by: July 1 2025\nst",
+          "version": "2.16.105"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Google Sheets2": {
+      "ai_tool": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Split Attachments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "formater",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "formater": {
+      "main": [
+        [
+          {
+            "node": "Mergev",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge-n",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Send Email Confirmation to Vendor",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "check if approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Quote": {
+      "main": [
+        [
+          {
+            "node": "CreateTransfer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge-n": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check if approved": {
+      "main": [
+        [
+          {
+            "node": "Mergev",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Merge-n",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CreateTransfer": {
+      "main": [
+        [
+          {
+            "node": "Request to client for Review",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Sheets1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mergev": {
+      "main": [
+        [
+          {
+            "node": "Create Quote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email Confirmation to Vendor": {
+      "main": [
+        []
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Attachments": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        []
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f2316f9b-4227-45dd-b46c-58073191236e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c20ae7e3e0d12f98bfbb659af04d62304426fa8f21617e713bb29cd21af9a4c9"
+  },
+  "id": "chi2XDH6hbpLwHIL",
+  "tags": []
+}
