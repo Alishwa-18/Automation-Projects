@@ -1,0 +1,2395 @@
+{
+  "name": "Hail Damage Appointments",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "=define",
+        "text": "={{\n  $('Chat Received').item.json.messages[0].text.body.replace(\n    /\\b(\\d{1,2})\\s+(january|february|march|april|may|june|july|august|september|october|november|december)\\b|\\b(january|february|march|april|may|june|july|august|september|october|november|december)\\s+(\\d{1,2})\\b/gi,\n    (match) => `${match} ${$('Append Current Year to Date').item.json.year}`\n  )\n}}\nYou are a helpful AI assistant for booking hail damage inspection appointments.\nOnly ask the user for missing information. If details like name, phone number, appointment date, email, or insured with AXA  or claim number  have already been provided, do not ask for them again. Avoid repeating any questions already answered in the conversation.\n\nDate & Time Rules\nAccept only quarter-hour appointment times (e.g., 09:00, 09:15, 09:30, 09:45, 10:00, etc.).\nIf the user provides a time outside these intervals (e.g., 09:10, 10:20, 10:55), politely reject it and ask for the nearest quarter-hour.\n\nAXA Insurance Question\nAsk: “Bent u verzekerd bij AXA?” only once.\n\nIf “Nee” → continue booking normally without extra steps.\n\n",
+        "options": {
+          "systemMessage": "=You are a **formal, respectful, and helpful digital assistant** for **Hail Damage Solutions (HDS)**, supporting AXA customers via WhatsApp.  \nYour **only responsibility** is to **book appointments** for hail damage assessments.\n\n---\n\n🗣️ TONE & LANGUAGE\n\n- If the user sends a casual message like “hi”, or “hello”,  respond with:\n  > Between 05:00–11:59 → Goedemorgen, ik ben de afspraakplanner assistent van AXA. Hoe kan ik je helpen?\n\nBetween 12:00–17:59 → Goedemiddag, ik ben de afspraakplanner assistent van AXA. Hoe kan ik je helpen?\n\nBetween 18:00–04:59 → Goedenavond, ik ben de afspraakplanner assistent van AXA. Hoe kan ik je helpen?\n If the user sends a casual message like \"Thanks\" , \"Thank you\" or \"Ok\" ,respond with:\n“You’re welcome” or another friendly closing.\n  - Set:\n    ```json\n    \"userInfoProvided\": false\n    ```\n\n---\n\n📆 CONTEXT – APPOINTMENT RULES\n\n- Timezone: **CET/CEST**\n- Appointments allowed only:\n  ✅ Monday–Friday  \n  ✅ Between 08:00 and 17:00 \n  ✅ **Allowed time slots include every 15 minutes** (e.g., 08:00, 08:15, 08:30, 08:45, etc.)\n- The current year is 2025 -> adhere to the calendar of 2025 when checking if the appointment fals on a saturday or sunday\n- Do **not allow**:\n  ❌ Past dates  \n  ❌ Weekends (Saturday or Sunday)  \n  ❌ Belgian public holidays  \n\n➡️ If the user provides an invalid date/time:\n- Politely reject it.\n- Ask for another date and time.\n- Use **“unfortunately” only when rejecting** a date or time.\n- Do **not** say “unfortunately” if the date is valid.\n\n---\n\n💬 CONVERSATION FLOW (LOGIC)\n\n✔️ Do **not repeat steps** that have already been completed.  \n✔️ Reuse any valid data the customer already gave.\n\n1. **Confirm AXA Insurance**  \n   > “May I confirm that you’re insured with AXA?\n   *(Assume \"yes\" unless the customer clearly says no.)*\n\n2. **Ask for Claim Number**  \n   > “Do you have a claim number available? \n   - If not provided, say:  \n     > “It is not required to proceed, but please bring it to your appointment if available.”\n\n3. **Collect personal information in one grouped message**:\n   - First name  \n   - Last name  \n   - Email address  \n   - Phone number  \n   - License plate  \n   - Vehicle make and model  \n\n4. **Ask technical questions**:\n   > “Are the windows intact and lights fully functional? \n\n5. Ask scheduling questions\n   > “When would you prefer your hail damage inspection (Monday–Friday, 08:00–17:00)?”\n\n---\n\n⚠️ IMPORTANT BEHAVIOR RULES\n\n- Do **not** ask for information twice.\n- Do **not** repeat questions that have already been answered.\n- Always reuse prior inputs when available (e.g., “Yes, the lights are working”).\n- If any required info is missing, ask **only for the missing fields**, and set:\n  ```json\n  \"userInfoProvided\": false\n\n--\nImportant style guidelines:\nOm teksten te schrijven in de stijl van AXA België’s klantenservice, voor particuliere klanten die een afspraak willen maken voor hagelschadeherstelling, volg deze richtlijnen:\n\nAanspreekvorm: Spreek de klant direct aan in de informele vorm “je/jouw”. Bijvoorbeeld: “Heb je schade aan je auto door hagel?” of “Wil je een afspraak inplannen?”. Blijf consequent in deze aanspreekvorm.\n\nToon en stem: Houd de toon vriendelijk, behulpzaam en geruststellend. Schrijf alsof “wij” (AXA) naast de klant staan: gebruik de wij-vorm om het bedrijf te vertegenwoordigen, bijvoorbeeld “We helpen je graag” of “We staan voor je klaar om dit snel op te lossen.”. Toon empathie voor de situatie: “We begrijpen dat hagelschade vervelend is.”.\n\nEenvoudige taal: Gebruik duidelijke, eenvoudige taal. Vermijd ingewikkelde termen of vakjargon. Als je toch een technische term moet gebruiken (zoals carrosserie, expertise), leg deze kort uit in gewone woorden. Schrijf concreet en helder, bijvoorbeeld: “Je kan je schade online melden” in plaats van “Je kan uw schade digitaal indienen.”.\n\nZinslengte en structuur: Schrijf in korte tot middellange zinnen. Vermijd lange, ingewikkelde zinnen. Geef per zin één duidelijke boodschap. Gebruik bij instructies de gebiedende wijs (imperatief), bijvoorbeeld: “Plan je afspraak via onze website” of “Bel ons voor advies.”. Stel soms een vraag gevolgd door een direct antwoord, om de tekst levendiger te maken: “Wil je sneller geholpen worden? Maak dan meteen online een afspraak.”.\n\nStructuur met kopjes en lijsten:\n\nGebruik tussenkopjes om de tekst overzichtelijk te maken. Formuleer kopjes bij voorkeur als vraag of actie die relevant is voor de klant, bijvoorbeeld: “Hoe maak je een afspraak voor herstelling?” of “Wat heb je nodig voor je aangifte?”.\n\nGebruik bulletpoints of genummerde lijsten voor stappen of vereisten, zodat klanten snel de informatie vinden die ze nodig hebben. Bijvoorbeeld:\nHoe maak je een afspraak?\n- Meld je schade online of via de AXA app.\n- Kies een hersteller in je buurt.\n- Plan een datum die voor jou past.\nEmpathie en geruststelling: Laat merken dat AXA de situatie begrijpt en de klant wil helpen. Voeg geruststellende zinnen toe zoals: “Geen zorgen, we begeleiden je stap voor stap.” of “We zorgen ervoor dat je wagen snel hersteld wordt.”. Bied altijd een duidelijke volgende stap aan, bijvoorbeeld: “Meld je schade online, dan nemen we snel contact met je op.”.\n\nUrgentie en duidelijkheid: Als het om een dringende situatie gaat, communiceer dit helder en direct. Bijvoorbeeld: “Is je voertuig niet meer veilig om mee te rijden? Neem dan onmiddellijk contact met ons op.”. Houd de toon alerter maar blijf kalm en oplossingsgericht.\n\nConsistente, kalme stijl: Schrijf professioneel maar toegankelijk. Geen overdreven marketingtaal of loze beloften, maar praktische en behulpzame informatie. Stel je voor dat je een vriendelijke klantenadviseur bent die de klant op zijn gemak stelt én duidelijke instructies geeft.\n\nDoor deze richtlijnen te volgen, kan een taalmodel teksten genereren die perfect passen bij de klantenservice-communicatie van AXA België, gericht op particuliere klanten die hulp zoeken bij hagelschadeherstelling.\n\n\n\n✅ STRICT RESPONSE FORMAT (ALWAYS USE THIS)\n\nRespond using this exact JSON structure:\n{\n  \"message\": \"string\",\n  \"segment\": \"setAppointment\",\n  \"http_type\": \"POST\",\n  \"userInfoProvided\": true | false,\n  \"timeSlotProvided\": true | false,\n  \"appointment\": {\n    \"firstName\": \"\",\n    \"lastName\": \"\",\n    \"email\": \"\",\n    \"phone\": \"\",\n    \"licensePlate\": \"\",\n    \"vehicle\": \"\",\n    \"claimNumber\": null,\n    \"windowsIntact\": true,\n    \"lightsFunctional\": true,\n    \"urgency\": \"low\",\n    \"date\": \"\",\n    \"startTime\": \"\"\n  }\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        816,
+        -96
+      ],
+      "id": "04b0c952-fd05-4b6c-8bdb-5fc7cd5cf2ef",
+      "name": "AI Agent-Customer User case?"
+    },
+    {
+      "parameters": {
+        "jsCode": "const currentYear = new Date().getFullYear();\n\nfunction ensureCurrentYear(dateStr) {\n  if (!dateStr) return \"\";\n\n  const parts = dateStr.split(\"-\");\n  if (parts.length !== 3) return dateStr;\n\n  const [year, month, day] = parts;\n\n  const parsedYear = parseInt(year, 10);\n  if (isNaN(parsedYear) || parsedYear < currentYear) {\n    return `${currentYear}-${month}-${day}`;\n  }\n\n  return dateStr;\n}\n\nfor (const item of $input.all()) {\n  let raw = item.json.output;\n\n  try {\n    raw = raw.replace(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/, \"$1\").trim();\n    const parsed = JSON.parse(raw);\n\n    // 🔁 Fix appointment year if it's in the past\n    if (parsed.appointment && parsed.appointment.date) {\n      parsed.appointment.date = ensureCurrentYear(parsed.appointment.date);\n    }\n  // 🔹 Additional 24-hour / 14-day logic\n    if (!parsed.appointment?.date || !parsed.appointment?.startTime) {\n      parsed.isAfter24Hours = \"none\";\n      parsed.isWithin14Days = \"none\";\n    } else {\n      const appointmentDateTime = new Date(\n        `${parsed.appointment.date}T${parsed.appointment.startTime}`\n      );\n      const now = new Date();\n\n      const diffHours = (appointmentDateTime - now) / (1000 * 60 * 60);\n      parsed.isAfter24Hours = diffHours > 24;\n\n      const diffDays = diffHours / 24;\n      parsed.isWithin14Days = diffDays <= 14 && diffDays >= 0;\n    }\n\n    item.json = parsed;\n\n  } catch (e) {\n    item.json = {\n      error: \"Failed to parse output\",\n      original: raw\n    };\n  }\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        -96
+      ],
+      "id": "ea139c90-49e5-42e9-b5a0-02d59e3279d2",
+      "name": "json formate response"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "bb6bf8c7-8bd7-47db-ab4f-8014b24447b8",
+              "leftValue": "={{ $json.userInfoProvided }}",
+              "rightValue": "false",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "3d715c56-4be0-43fd-bf64-1a6336d480da",
+              "leftValue": "={{ $json.timeSlotProvided }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1456,
+        -64
+      ],
+      "id": "ad7e24f4-89f3-42db-8359-6a40f6d474c4",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "681342445061384",
+        "recipientPhoneNumber": "={{ $('Chat Received').item.json.messages[0].from }}",
+        "textBody": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1520,
+        256
+      ],
+      "id": "05b9c2d7-dca8-4c02-b985-18ff66c660f5",
+      "name": "WhatsApp Business Cloud",
+      "webhookId": "8c761a02-198e-46ff-9530-9e0fb4f48044",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "nyGC4cePXGCebXuT",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.messages[0].text.body }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "0ce667ce-64c4-4115-baf6-8c5b504a1577"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "valid message?"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -448,
+        -80
+      ],
+      "id": "cf677940-d407-4e44-a0ed-d20598e4414f",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import hashlib\nimport time\nimport urllib.parse\n\n# Static credentials\napi_key = \"lomk92owwv86-lgeb82\"\napi_secret = \"7d92ea36640cb2efe149901220f3953564608ede\"\n\n# Get data (simulate or from n8n)\ndata = items[0][\"json\"]\nmethod_name = \"setCustomer\"\nappointment = data.get(\"appointment\", {})\n\nraw_phone = appointment.get(\"phone\", \"\")\nclean_phone = raw_phone.replace(\"+\", \"\")\n\n# Clean and normalize names: strip whitespace and remove internal spaces\nfirst_name = appointment.get(\"firstName\", \"\").replace(\" \", \"\").strip()\nlast_name = appointment.get(\"lastName\", \"\").replace(\" \", \"\").strip()\n\n# Define the correct parameter order\nordered_keys = [\"Email\", \"FirstName\", \"LastName\", \"MobilePhone\", \"Status\", \"method\"]\nparams = {\n    \"Email\": appointment.get(\"email\", \"\"),\n    \"FirstName\": first_name,\n    \"LastName\": last_name,\n    \"MobilePhone\": clean_phone,\n    \"Status\": 1,\n    \"method\": method_name\n}\n\n# Generate the timestamp (api_salt)\napi_salt = str(int(time.time()))\n\n# Build the string to hash (excluding api_key)\nstring_to_sign = \"\".join(f\"{key}{params[key]}\" for key in ordered_keys)\nstring_to_sign += f\"{api_secret}{api_salt}\"\n\n# Generate the SHA256 hash\napi_signature = hashlib.sha256(string_to_sign.encode(\"utf-8\")).hexdigest()\n\n# Encode query string for final URL\nquery_string = \"&\".join(f\"{key}={urllib.parse.quote(str(params[key]))}\" for key in ordered_keys)\n\nurl = (\n    f\"https://agenda.onlineafspraken.nl/APIREST/?\"\n    f\"{query_string}&api_key={api_key}\"\n    f\"&api_signature={api_signature}&api_salt={api_salt}\"\n)\n\nreturn [{\n    \"json\": {\n        \"url\": url,\n        \"api_signature\": api_signature,\n        \"api_salt\": api_salt,\n        \"string_to_sign\": string_to_sign,\n        \"mobile_cleaned\": clean_phone\n    }\n}]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        -288
+      ],
+      "id": "54398cbb-c8cb-47d4-a571-e556ab63d52b",
+      "name": "Make Valid url | create customer"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1728,
+        -288
+      ],
+      "id": "d04ccea1-22eb-42e9-b085-d73a43d91b59",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        1968,
+        -288
+      ],
+      "id": "f62e9fc1-69ce-46e4-8eb7-49fd543bfbb2",
+      "name": "XML2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c45d351d-baad-4872-94b3-38be7b0339f4",
+              "leftValue": "={{ $json.Response.Status.Status }}",
+              "rightValue": "failed",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "ef74c82d-b001-4b97-aba9-fcb2bb49fe78",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2112,
+        -288
+      ],
+      "id": "f6572367-49c7-4f43-9e5d-19f204148ed3",
+      "name": "Is success?"
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {\n  const fullMessage = item.json.Response?.Status?.Message || \"\";\n\n  const cleanedMessage = fullMessage\n    .replace(/API failed to store customer:\\s*/i, \"\")\n    .trim();\n\n  item.json.whatsappMessage = cleanedMessage;\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        -16
+      ],
+      "id": "5ebb7ac1-5b96-45e9-b4a0-3435e4651a77",
+      "name": "Error message clean"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "681342445061384",
+        "recipientPhoneNumber": "={{ $('Chat Received').item.json.messages[0].from }}",
+        "textBody": "={{ $json.message.content }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        2304,
+        240
+      ],
+      "id": "a7c2e1aa-c8f4-49e0-b842-bde5af9ab6f9",
+      "name": "Send fail cause",
+      "webhookId": "7f6e705c-9c0d-4b48-9f42-34ad0b1f20b5",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "nyGC4cePXGCebXuT",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import hashlib\nimport time\nimport urllib.parse\nfrom datetime import datetime, timedelta\n\n\n# Credentials\napi_key = \"lomk92owwv86-lgeb82\"\napi_secret = \"7d92ea36640cb2efe149901220f3953564608ede\"\n\nAgendaId = \"44302\"\nAppointmentTypeId = \"566695\"\nResourceId = \"200815\"\nmethod_name = \"setAppointment\"\n\n# Input data from n8n\ndata = items[0][\"json\"]\nappointment = data[\"appointment\"]\nmessage = data[\"message\"]\nCustomerId = items[0][\"json\"][\"Response\"][\"Objects\"][\"Customer\"][\"Id\"]\n# Parse dynamic values\nlicense_plate = appointment.get(\"licensePlate\", \"\")\nvehicle = appointment.get(\"vehicle\", \"\")\nvehicle_parts = vehicle.strip().split()\nvehicle_make = vehicle_parts[0] if len(vehicle_parts) > 0 else \"\"\nvehicle_model = vehicle_parts[-1] if len(vehicle_parts) > 1 else \"\"\n\n# Conditional fields\nruit_gebroken = \"Ja\" if appointment.get(\"windowsIntact\", False) else \"Nee\"\nfenetre_cassee = \"1\" if appointment.get(\"lightsFunctional\", False) else \"0\"\n\n# Generate salt\napi_salt = str(int(time.time()))\n\nstart_time_str = appointment[\"startTime\"]\nstart_dt = datetime.strptime(start_time_str, \"%H:%M\")\nend_dt = start_dt + timedelta(minutes=20)\nappointment[\"endTime\"] = end_dt.strftime(\"%H:%M\")\n\n# Define parameters (exact keys as used in working signature string)\nparams_for_signature = {\n    \"AgendaId\": AgendaId,\n    \"AppointmentTypeId\": AppointmentTypeId,\n    \"CustomerId\": CustomerId,\n    \"Date\": appointment[\"date\"],\n    \"EndTime\": appointment[\"endTime\"],\n    \"Fen_tre_cass_e_et_ou_clairage_endommag\": fenetre_cassee,\n    \"Kenteken_Plaque\": license_plate,\n    \"Merk_Marque\": vehicle_make,\n    \"Model_Mod_le\": vehicle_model,\n    \"Ruit_gebroken_of_verlichting_beschadigd\": ruit_gebroken,\n    \"StartTime\": appointment[\"startTime\"],\n    \"method\": method_name\n}\n\n# Sort, sign and hash\nordered_keys = sorted(params_for_signature)\nstring_to_sign = \"\".join(f\"{key}{params_for_signature[key]}\" for key in ordered_keys)\nstring_to_sign += f\"{api_secret}{api_salt}\"\napi_signature = hashlib.sha256(string_to_sign.encode(\"utf-8\")).hexdigest()\n\n# Final query\nquery_params = {\n    **params_for_signature,\n    \"api_key\": api_key,\n    \"api_signature\": api_signature,\n    \"api_salt\": api_salt\n}\n\nquery_string = \"&\".join(f\"{key}={urllib.parse.quote(str(value))}\" for key, value in query_params.items())\nurl = f\"https://agenda.onlineafspraken.nl/APIREST/?{query_string}\"\n\n# Output\nreturn [{\n    \"json\": {\n        \"url\": url,\n        \"string_to_sign\": string_to_sign,\n        \"api_signature\": api_signature,\n        \"api_salt\": api_salt,\n        \"CustomerId\": CustomerId,\n        \"Message\": message,\n        \"Appointment\": appointment\n    }\n}]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2368,
+        -16
+      ],
+      "id": "d036b569-5949-4461-820a-3f4f8b235b36",
+      "name": "Make Valid url | Set appointment"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2560,
+        -16
+      ],
+      "id": "d642c5b3-89ae-4683-802b-324750c7a906",
+      "name": "Http-Set appointment"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2368,
+        -288
+      ],
+      "id": "0d2cf469-1051-42a8-91fe-8fe0526a1c17",
+      "name": "Combine"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        864,
+        80
+      ],
+      "id": "b761296b-87a2-44ca-88d0-8545cec8906f",
+      "name": "OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "Ybjk5J6intPnJU7B",
+          "name": "joost-key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Chat Received').item.json.contacts[0].wa_id }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        992,
+        80
+      ],
+      "id": "ccd64d7b-0d82-4a54-b3ab-9cee79d5a1c1",
+      "name": "Simple"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -624,
+        -80
+      ],
+      "id": "9bd76260-abb1-4328-9304-bd619a48d54a",
+      "name": "Chat Received",
+      "webhookId": "82a45fd8-40cd-453c-8d96-9863c260eda1",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "001g2Tpil7x800cd",
+          "name": "WhatsApp OAuth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const currentYear = new Date().getFullYear();\n\nreturn [\n  {\n    json: {\n      year: currentYear\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        -96
+      ],
+      "id": "c33dfa9b-1cc1-4b25-869b-c207f960ed2e",
+      "name": "Append Current Year to Date"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-3.5-turbo",
+          "mode": "list",
+          "cachedResultName": "GPT-3.5-TURBO"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an error message formatter for WhatsApp.\n\nExtract the most relevant customer-facing error message from this technical message, then rewrite it into a clear, friendly sentence in proper Dutch to send to the customer via WhatsApp. Avoid any system details or code-like text.\n\n{{ $json.Response.Status.Message }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1936,
+        272
+      ],
+      "id": "7db7f839-f678-4723-9481-80ffa3c613c4",
+      "name": "OpenAI2",
+      "credentials": {
+        "openAiApi": {
+          "id": "Ybjk5J6intPnJU7B",
+          "name": "joost-key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -304,
+        80
+      ],
+      "id": "d56381e5-d631-4fdc-8d9e-41495f794765",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Ybjk5J6intPnJU7B",
+          "name": "joost-key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an assistant that determines what the customer wants.\n\nOnly return one of the following keys:\n- getappointment\n- setappointment\n\nAnalyze the user’s message and behavior to decide intent:\n\nRules:\n1. If the user asks to view/check/see their existing appointment(s), return: **getappointment**\n2. If the user wants to book/schedule a new appointment, return: **setappointment**\n3. If the message is unclear or not a complete request, default to: **setappointment**\n\nImportant:\n- If the user's message only contains an **phone number**, DO NOT change the intent.\n- In that case, assume the user is replying to a previous question and stick with the existing known intent (e.g., `getappointment`).\n\nMessage:\n{{ $json.messages[0].text.body }}\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        -80
+      ],
+      "id": "cbc434ec-e6ad-444e-ad1a-d7ab4b650062",
+      "name": "Analyzer"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.user_intent }}",
+                    "rightValue": "setappointment",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "97a8a51b-247b-4735-95d5-16cb1d064d8a"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "setappointment"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "22cd6360-2c5b-4cd8-a80c-81fc9d6eac92",
+                    "leftValue": "={{ $json.user_intent }}",
+                    "rightValue": "getappointment",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "getappointment"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        240,
+        -80
+      ],
+      "id": "59846034-4b53-477f-8934-59598ff4909a",
+      "name": "what wanted?"
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import hashlib\nimport time\n\n# Static values\napi_key = \"lomk92owwv86-lgeb82\"\napi_secret = \"7d92ea36640cb2efe149901220f3953564608ede\"\n\n# ✅ Use n8n's input object correctly\n# method_name = items[0][\"json\"][\"segment\"]\nmethod_name = \"getAppointments\"\n\n# Timestamp as salt\napi_salt = str(int(time.time()))\n\n# Signature format: \"method\" + method_name + secret + salt\nraw_string = \"method\" + method_name + api_secret + api_salt\napi_signature = hashlib.sha256(raw_string.encode(\"utf-8\")).hexdigest()\n\n# Build the final URL\nurl = (\n    f\"https://agenda.onlineafspraken.nl/APIREST/?\"\n    f\"method={method_name}&api_key={api_key}\"\n    f\"&api_signature={api_signature}&api_salt={api_salt}\"\n)\n\n# Return output for next nodes\nreturn [{\n    \"json\": {\n        \"url\": url,\n        \"method\": method_name,\n        \"api_key\": api_key,\n        \"api_salt\": api_salt,\n        \"api_signature\": api_signature,\n        \"raw_string\": raw_string\n    }\n}]\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -336,
+        -608
+      ],
+      "id": "3302d8e8-6677-4adc-84d9-f3515c034f82",
+      "name": "Make Valid url | Signature"
+    },
+    {
+      "parameters": {
+        "dataPropertyName": "=data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        208,
+        -608
+      ],
+      "id": "c5a08d59-54c9-4b7c-8e33-c027eb7a908b",
+      "name": "XML"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -576,
+        -608
+      ],
+      "id": "face11fc-58f1-48bc-9155-30658f7d2dfe",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "14Nqhe7kxZeze3xNx1ZOjbdZCco3M3qvBSRm1i1Ad9Dw",
+          "mode": "list",
+          "cachedResultName": "All Appointments",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/14Nqhe7kxZeze3xNx1ZOjbdZCco3M3qvBSRm1i1Ad9Dw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/14Nqhe7kxZeze3xNx1ZOjbdZCco3M3qvBSRm1i1Ad9Dw/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Id": "={{ $json.Id }}",
+            "Name": "={{ $json.Name }}",
+            "Description": "={{ $json.Description }}",
+            "AgendaId": "={{ $json.AgendaId }}",
+            "StartTime": "={{ $json.StartTime }}",
+            "FinishTime": "={{ $json.FinishTime }}",
+            "BlockedTime": "={{ $json.BlockedTime }}",
+            "Capacity": "={{ $json.Capacity }}",
+            "AppointmentTypeId": "={{ $json.AppointmentTypeId }}",
+            "CustomerId": "={{ $json.CustomerId }}",
+            "CustomerName": "={{ $json.CustomerName }}",
+            "Status": "={{ $json.Status }}",
+            "Label": "={{ $json.Label }}",
+            "Resources_ResourceId": "={{ $json.Resources.ResourceId }}",
+            "Resources_StartTime": "={{ $json.Resources.StartTime }}",
+            "Resources_FinishTime": "={{ $json.Resources.FinishTime }}",
+            "CreateTime": "={{ $json.CreateTime }}",
+            "UpdateTime": "={{ $json.UpdateTime }}"
+          },
+          "matchingColumns": [
+            "Id"
+          ],
+          "schema": [
+            {
+              "id": "Id",
+              "displayName": "Id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AgendaId",
+              "displayName": "AgendaId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "StartTime",
+              "displayName": "StartTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "FinishTime",
+              "displayName": "FinishTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "BlockedTime",
+              "displayName": "BlockedTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Capacity",
+              "displayName": "Capacity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AppointmentTypeId",
+              "displayName": "AppointmentTypeId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CustomerId",
+              "displayName": "CustomerId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CustomerName",
+              "displayName": "CustomerName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Label",
+              "displayName": "Label",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Resources_ResourceId",
+              "displayName": "Resources_ResourceId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Resources_StartTime",
+              "displayName": "Resources_StartTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Resources_FinishTime",
+              "displayName": "Resources_FinishTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "CreateTime",
+              "displayName": "CreateTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "UpdateTime",
+              "displayName": "UpdateTime",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        720,
+        -608
+      ],
+      "id": "a8a91bfd-99ef-4c0a-ae35-24f934de63a3",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HejqWz9nziCZIBv1",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const appointments = items[0].json.Response.Objects.Appointment;\n\nreturn appointments.map(app => {\n  // Flatten nested Resources if needed\n  return {\n    json: {\n      ...app,\n      Resources_ResourceId: app.Resources?.ResourceId || \"\",\n      Resources_StartTime: app.Resources?.StartTime || \"\",\n      Resources_FinishTime: app.Resources?.FinishTime || \"\"\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        -608
+      ],
+      "id": "90fc1d3a-b0ef-4b7c-ae69-164eab5fdf26",
+      "name": "Appointments Array"
+    },
+    {
+      "parameters": {
+        "url": "https://agenda.onlineafspraken.nl/APIREST",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "={{ $json.method }}"
+            },
+            {
+              "name": "api_key",
+              "value": "={{ $json.api_key }}"
+            },
+            {
+              "name": "api_signature",
+              "value": "={{ $json.api_signature }}"
+            },
+            {
+              "name": "api_salt",
+              "value": "={{ $json.api_salt }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -64,
+        -608
+      ],
+      "id": "e1a21815-63f3-4ad5-a930-43077399432f",
+      "name": "Get appointments"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        384,
+        1024
+      ],
+      "id": "c19d743a-fbe1-4061-9773-468bd0510b5f",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "Ybjk5J6intPnJU7B",
+          "name": "joost-key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Chat Received').item.json.contacts[0].wa_id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        512,
+        1008
+      ],
+      "id": "0c2596b6-bf80-41c9-b3ba-68d52c18f888",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {\n  const parsed = JSON.parse(item.json.output);\n\n  item.json.customerfound = parsed.customerfound || false;\n\n if ('id' in parsed) {\n  item.json.id = Number(parsed.id);\n}\n\n  if ('message' in parsed) {\n    item.json.message = parsed.message;\n  }\n\n  if ('infocollect' in parsed) {\n    item.json.infocollect = parsed.infocollect;\n  }\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        800
+      ],
+      "id": "0f6e43fa-fc24-4c02-a613-e0b79ecfaf89",
+      "name": "Parse info"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b60720da-95d9-4dd1-883a-6bb6036fcb2f",
+              "leftValue": "={{ $json.customerfound }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        944,
+        800
+      ],
+      "id": "390b4de1-3630-443c-8659-d67e0553e49b",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "681342445061384",
+        "recipientPhoneNumber": "={{ $('Chat Received').item.json.contacts[0].wa_id }}",
+        "textBody": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        992
+      ],
+      "id": "4de64006-c6ca-40b9-bdf3-4ab82ac68633",
+      "name": "WhatsApp Business Cloud1",
+      "webhookId": "1b86cd1d-b47a-4d45-8f63-03b5f34cc51f",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "nyGC4cePXGCebXuT",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Chat Received').item.json.contacts[0].wa_id }}",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -208,
+        80
+      ],
+      "id": "3370b1ad-6676-4c36-87c2-828405f7c61e",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8c616f3f-dbf1-403f-97f4-4282c438daba",
+              "name": "user_intent",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "ac82d6fd-a44e-4eb8-9a7d-8e179fb3115d",
+              "name": "Phonenumber",
+              "value": "={{ $('Chat Received').item.json.contacts[0].wa_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        64,
+        -80
+      ],
+      "id": "1c6e3540-d60d-46ef-acad-592ac90cfcf5",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "681342445061384",
+        "recipientPhoneNumber": "={{ $('Chat Received').item.json.contacts[0].wa_id }}",
+        "textBody": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        2432,
+        544
+      ],
+      "id": "80730133-9bd4-47a3-8806-35651e5cfe4f",
+      "name": "WhatsApp Business Cloud2",
+      "webhookId": "ef3bc31f-48aa-4ba9-9f96-c8422a38698c",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "nyGC4cePXGCebXuT",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## See Appointment",
+        "height": 80
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        368,
+        480
+      ],
+      "typeVersion": 1,
+      "id": "8bd10800-77b5-4b6c-a299-67cf9f6dceba",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "14Nqhe7kxZeze3xNx1ZOjbdZCco3M3qvBSRm1i1Ad9Dw",
+          "mode": "list",
+          "cachedResultName": "All Appointments",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/14Nqhe7kxZeze3xNx1ZOjbdZCco3M3qvBSRm1i1Ad9Dw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1050940585,
+          "mode": "list",
+          "cachedResultName": "customers_list",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/14Nqhe7kxZeze3xNx1ZOjbdZCco3M3qvBSRm1i1Ad9Dw/edit#gid=1050940585"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.6,
+      "position": [
+        608,
+        1024
+      ],
+      "id": "a1f4f5a8-af54-4f69-89da-2f11a3036259",
+      "name": "customers",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HejqWz9nziCZIBv1",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=",
+        "options": {
+          "systemMessage": "=You are an AI assistant helping customers find their vehicle appointments.\n\nA customer’s data has been provided, including their ID {{ $json.Id }}, customer name:{{ $json.CustomerName }}.\n\nYour job is to:\n1. Use the connected Google Sheet (“appointments”) to find rows where the **CustomerId** exactly matches the value in the input `Id` field.\n2. From those matching rows, check if the **FinishTime** is **today or in the future**.\n3. Return the **next future appointment** (the soonest).\n4. Format a clear, polite message to send via WhatsApp.\n\n---\n\nRESPONSE RULES:\n\n✅ If a future appointment is found:\nRespond like this:\n```json\n{\n  \"found\": true,\n  \"message\": \"Thank you! Your upcoming appointment is scheduled on <FinishTime> for your <Name>. Let us know if you have any questions!\"\n}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        544
+      ],
+      "id": "b9adf395-65ae-4171-8666-ef3a44cd850d",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1680,
+        720
+      ],
+      "id": "f05cb1e9-75cf-4ff8-a189-26fea5a66071",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "Ybjk5J6intPnJU7B",
+          "name": "joost-key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {\n  const parsed = JSON.parse(item.json.output);\n\n  item.json.found = parsed.found || false;\n\n  if ('message' in parsed) {\n    item.json.message = parsed.message;\n  }\n}\n\nreturn $input.all();\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        544
+      ],
+      "id": "aa92d246-8f8b-422f-aabb-ddb42e410ffa",
+      "name": "Parse info1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an AI assistant helping customers find their upcoming appointments.\n\nRULES:\n\n1. First, check if the user provided their phone number in the message.\n   - If the message does NOT contain a phone number:\n     → Respond with:\n     {\n       \"infocollect\": false,\n       \"message\": \"Could you please provide your phone number so I can find your appointment?\"\n     }\n\n2. If the message DOES include a phone number:\n   - Use the connected Google Sheet named \"customers_list\".\n   - Search for a row where the \"Phone\" column matches the phone number from the user.\n   - Only consider appointments with **future dates** (today or later), if a date column is present.\n\n3. If a matching customer with a valid upcoming appointment is found:\n   → Respond with:\n   {\n     \"customerfound\": true,\n     \"id\": \"<value from the Id column>\"\n   }\n\n4. If no matching customer is found or there are no upcoming appointments:\n   → Respond politely with:\n   {\n     \"customerfound\": false,\n     \"message\": \"Sorry, I couldn't find any record associated with the given number.\"\n   }\n\nNOTE:\n- Do **not** return the spreadsheet row index.\n- Use the actual value from the `Id` column in the response.\n\nUser message:\n{{ $('Chat Received').item.json.messages[0].text.body }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        400,
+        800
+      ],
+      "id": "92a72b74-89ea-4daf-bad5-c4575db545ac",
+      "name": "Get Customer"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "14Nqhe7kxZeze3xNx1ZOjbdZCco3M3qvBSRm1i1Ad9Dw",
+          "mode": "list",
+          "cachedResultName": "All Appointments",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/14Nqhe7kxZeze3xNx1ZOjbdZCco3M3qvBSRm1i1Ad9Dw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/14Nqhe7kxZeze3xNx1ZOjbdZCco3M3qvBSRm1i1Ad9Dw/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "CustomerId",
+              "lookupValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        1200,
+        704
+      ],
+      "id": "d528ac7e-e9ed-4f21-8113-709cb57a29c6",
+      "name": "Search in sheet",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HejqWz9nziCZIBv1",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d7c3dd66-e214-416c-8d13-5a1642fe67c3",
+              "leftValue": "={{ $json.Name }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1424,
+        704
+      ],
+      "id": "d3925c90-3f3f-40b4-a9d7-a7244c6a048b",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "14Nqhe7kxZeze3xNx1ZOjbdZCco3M3qvBSRm1i1Ad9Dw",
+          "mode": "list",
+          "cachedResultName": "All Appointments",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/14Nqhe7kxZeze3xNx1ZOjbdZCco3M3qvBSRm1i1Ad9Dw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/14Nqhe7kxZeze3xNx1ZOjbdZCco3M3qvBSRm1i1Ad9Dw/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.6,
+      "position": [
+        1840,
+        720
+      ],
+      "id": "faf59697-16a9-42ea-ae04-795365a5c9d5",
+      "name": "Google Sheets1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HejqWz9nziCZIBv1",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b1814522-90a8-47ff-a8f4-bf2b6563d3c7",
+              "leftValue": "={{ $json.found }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2192,
+        544
+      ],
+      "id": "1d3db7b5-3997-4e56-85a5-d1b33c92e90f",
+      "name": "If4"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "681342445061384",
+        "recipientPhoneNumber": "={{ $('Chat Received').item.json.contacts[0].wa_id }}",
+        "textBody": "You don’t have any upcoming appointments at the moment.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1664,
+        880
+      ],
+      "id": "4956fa8d-21a9-4ef5-8e61-722ca28e37d8",
+      "name": "WhatsApp Business Cloud3",
+      "webhookId": "8d79504c-a618-4b8c-aac9-88e27b55fdbd",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "nyGC4cePXGCebXuT",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        2848,
+        -16
+      ],
+      "id": "74234022-d3df-462f-97b8-3637ac73d6eb",
+      "name": "XML7"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "681342445061384",
+        "recipientPhoneNumber": "={{ $('Chat Received').item.json.messages[0].from }}",
+        "textBody": "=De afspraak is bevestigd.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        3072,
+        -224
+      ],
+      "id": "f4b40f64-7328-4948-b447-8ba35b943b7b",
+      "name": "confirm appointment2",
+      "webhookId": "a3c9f2e7-48bc-4725-b526-3809fe7b5762",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "nyGC4cePXGCebXuT",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ecd9903c-2f3d-4499-a88f-6ba1cc73982d",
+              "leftValue": "={{ $json.Response.Status.Status }}",
+              "rightValue": "failed",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "71bb521a-e0d3-47d5-b5d9-f8459ae00ae5",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3040,
+        -16
+      ],
+      "id": "f440957d-8f24-470d-8688-35e386487375",
+      "name": "If6"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4O"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are an error message formatter for WhatsApp.\n\nExtract the most relevant customer-facing explanation from this technical message, then rewrite it into a **clear, polite message** for the customer, using the detected language.\n\nAvoid code, API terms, or technical references. Sound helpful and human.\n\nInput:\n{{ $json.Response.Status.Message }}\n\nIf the message is about “minimum time before appointment”, the customer should receive:\n“Thank you, sir or madam. Appointments must be booked a certain amount of time in advance, and the time you selected is too soon. Could you kindly choose a later time slot or a different day?”"
+            },
+            {
+              "content": "Always use these style guidelines:\nOm teksten te schrijven in de stijl van AXA België’s klantenservice, voor particuliere klanten die een afspraak willen maken voor hagelschadeherstelling, volg deze richtlijnen:\n\nAanspreekvorm: Spreek de klant direct aan in de informele vorm “je/jouw”. Bijvoorbeeld: “Heb je schade aan je auto door hagel?” of “Wil je een afspraak inplannen?”. Blijf consequent in deze aanspreekvorm.\n\nToon en stem: Houd de toon vriendelijk, behulpzaam en geruststellend. Schrijf alsof “wij” (AXA) naast de klant staan: gebruik de wij-vorm om het bedrijf te vertegenwoordigen, bijvoorbeeld “We helpen je graag” of “We staan voor je klaar om dit snel op te lossen.”. Toon empathie voor de situatie: “We begrijpen dat hagelschade vervelend is.”.\n\nEenvoudige taal: Gebruik duidelijke, eenvoudige taal. Vermijd ingewikkelde termen of vakjargon. Als je toch een technische term moet gebruiken (zoals carrosserie, expertise), leg deze kort uit in gewone woorden. Schrijf concreet en helder, bijvoorbeeld: “Je kan je schade online melden” in plaats van “Je kan uw schade digitaal indienen.”.\n\nZinslengte en structuur: Schrijf in korte tot middellange zinnen. Vermijd lange, ingewikkelde zinnen. Geef per zin één duidelijke boodschap. Gebruik bij instructies de gebiedende wijs (imperatief), bijvoorbeeld: “Plan je afspraak via onze website” of “Bel ons voor advies.”. Stel soms een vraag gevolgd door een direct antwoord, om de tekst levendiger te maken: “Wil je sneller geholpen worden? Maak dan meteen online een afspraak.”.\n\nStructuur met kopjes en lijsten:\n\nGebruik tussenkopjes om de tekst overzichtelijk te maken. Formuleer kopjes bij voorkeur als vraag of actie die relevant is voor de klant, bijvoorbeeld: “Hoe maak je een afspraak voor herstelling?” of “Wat heb je nodig voor je aangifte?”.\n\nGebruik bulletpoints of genummerde lijsten voor stappen of vereisten, zodat klanten snel de informatie vinden die ze nodig hebben. Bijvoorbeeld:\n\ndiff\nKopiëren\nBewerken\nHoe maak je een afspraak?\n- Meld je schade online of via de AXA app.\n- Kies een hersteller in je buurt.\n- Plan een datum die voor jou past.\nEmpathie en geruststelling: Laat merken dat AXA de situatie begrijpt en de klant wil helpen. Voeg geruststellende zinnen toe zoals: “Geen zorgen, we begeleiden je stap voor stap.” of “We zorgen ervoor dat je wagen snel hersteld wordt.”. Bied altijd een duidelijke volgende stap aan, bijvoorbeeld: “Meld je schade online, dan nemen we snel contact met je op.”.\n\nUrgentie en duidelijkheid: Als het om een dringende situatie gaat, communiceer dit helder en direct. Bijvoorbeeld: “Is je voertuig niet meer veilig om mee te rijden? Neem dan onmiddellijk contact met ons op.”. Houd de toon alerter maar blijf kalm en oplossingsgericht.\n\nConsistente, kalme stijl: Schrijf professioneel maar toegankelijk. Geen overdreven marketingtaal of loze beloften, maar praktische en behulpzame informatie. Stel je voor dat je een vriendelijke klantenadviseur bent die de klant op zijn gemak stelt én duidelijke instructies geeft.\n\nDoor deze richtlijnen te volgen, kan een taalmodel teksten genereren die perfect passen bij de klantenservice-communicatie van AXA België, gericht op particuliere klanten die hulp zoeken bij hagelschadeherstelling.\n\n",
+              "role": "system"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        3040,
+        224
+      ],
+      "id": "7f4f845d-04e6-4177-b6a6-0d18411d220b",
+      "name": "OpenAI4",
+      "credentials": {
+        "openAiApi": {
+          "id": "Ybjk5J6intPnJU7B",
+          "name": "joost-key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "681342445061384",
+        "recipientPhoneNumber": "={{ $('Chat Received').item.json.messages[0].from }}",
+        "textBody": "={{ $json.message.content }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        3424,
+        448
+      ],
+      "id": "dd270dc8-de08-4446-96e6-da0a13593848",
+      "name": "confirm appointment1",
+      "webhookId": "a3c9f2e7-48bc-4725-b526-3809fe7b5762",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "nyGC4cePXGCebXuT",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f9683522-6fef-44c0-b8a0-c25c9e60f8d8",
+              "leftValue": "={{ $('XML7').item.json.Response.Status.Message }}",
+              "rightValue": "Geen vrij tijdslot voor afspraak",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3440,
+        224
+      ],
+      "id": "7cd679a4-01d3-4ff6-acf3-a09a27845673",
+      "name": "If5"
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "import hashlib\nimport time\nimport urllib.parse\n\n# === Credentials & Constants ===\napi_key = \"lomk92owwv86-lgeb82\"\napi_secret = \"7d92ea36640cb2efe149901220f3953564608ede\"\n\nAgendaId = \"44302\"\nAppointmentTypeId = \"566695\"\nResourceId = \"200815\"\nmethod_name = \"getBookableTimes\"\n\n# === Inputs from n8n merged list ===\nassistant_data = items[0][\"json\"]\ndata = items[1][\"json\"]\n\n# ✅ Use assistant message (items[0]) as final WhatsApp message\nmessage = assistant_data.get(\"message\", {}).get(\"content\", \"\")\n\n# ✅ Appointment and customer details from items[1]\nappointment = data.get(\"appointment\", {})\nCustomerId = data.get(\"Response\", {}).get(\"Objects\", {}).get(\"Customer\", {}).get(\"Id\", \"\")\nappointment_date = appointment.get(\"date\", \"\")\n\n# === Parameters required by API ===\nparams_for_signature = {\n    \"AgendaId\": AgendaId,\n    \"AppointmentTypeId\": AppointmentTypeId,\n    \"CustomerId\": CustomerId,\n    \"Date\": appointment_date,\n    \"ResourceId\": ResourceId,\n    \"method\": method_name\n}\n\n# === Generate API signature ===\napi_salt = str(int(time.time()))\nordered_keys = sorted(params_for_signature)\nstring_to_sign = \"\".join(f\"{key}{params_for_signature[key]}\" for key in ordered_keys)\nstring_to_sign += f\"{api_secret}{api_salt}\"\napi_signature = hashlib.sha256(string_to_sign.encode(\"utf-8\")).hexdigest()\n\n# === Build full query string ===\nquery_params = {\n    **params_for_signature,\n    \"api_key\": api_key,\n    \"api_signature\": api_signature,\n    \"api_salt\": api_salt\n}\n\nquery_string = \"&\".join(f\"{key}={urllib.parse.quote(str(value))}\" for key, value in query_params.items())\nurl = f\"https://agenda.onlineafspraken.nl/APIREST/?{query_string}\"\n\n# === Return output to next node ===\nreturn [{\n    \"json\": {\n        \"url\": url,\n        \"query_string\": query_string,\n        \"string_to_sign\": string_to_sign,\n        \"api_signature\": api_signature,\n        \"api_salt\": api_salt,\n        \"CustomerId\": CustomerId,\n        \"Date\": appointment_date,\n        \"Message\": message,\n        \"Appointment\": appointment\n    }\n}]"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3952,
+        48
+      ],
+      "id": "3ed906a8-ef5b-4cb9-8693-a876a663edb8",
+      "name": "Make Valid url | Get TimeSlots"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3744,
+        48
+      ],
+      "id": "d5bd4a57-0d82-4b37-afd5-f14632ab988b",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3744,
+        288
+      ],
+      "id": "43b8e682-0c49-4da5-b1a6-9f31ae993d06",
+      "name": "Http get time slot"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        3920,
+        288
+      ],
+      "id": "91cebb40-a01f-4bb0-bf97-ea0c94c7be5e",
+      "name": "XML6"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Je bent een behulpzame en professionele digitale assistent van een schadeherstelbedrijf.\n\nDe klant probeerde zojuist een afspraak in te plannen, maar de gekozen tijdslot was helaas niet beschikbaar.\n\nJe taak is om de klant hierover op een vriendelijke en duidelijke manier te informeren. Gebruik altijd beleefde en empathische taal.\n\nJe mag deze dynamische variabelen gebruiken in je antwoord:\n\nBeschikbaar bericht uit API: {{ $('Make Valid url | Get TimeSlots').item.json.Message }}\n\nAPI-respons met details:\n{{ $json.Response.Objects.BookableTime }}\nDoel van uw antwoord:\n\nMeld dat het, vanwege de grote drukte, niet mogelijk was om de afspraak op het gekozen tijdstip te boeken.\n\nToon begrip en waardering voor de flexibiliteit van de klant.\n\nPresenteer alleen de eerste 5 beschikbare tijdsloten uit de BookableTime-tabel.\n\nStrikte regel: bedenk, gok of genereer geen tijdslot dat niet expliciet in de BookableTime-array staat. Als er minder dan 5 tijdsloten in de tabel staan, toon dan alleen de beschikbare slots.\n\nToon elk tijdslot in het formaat: StartTime – EndTime (bijvoorbeeld: 08:00 – 08:15).\n\nGebruik opsommingstekens (zoals -) en zet elk slot op een nieuwe regel voor leesbaarheid.\n\nVraag de klant om één van de voorgestelde tijdsloten te kiezen, zodat u de afspraak direct kunt bevestigen.\n\nHet is niet verplicht om de eerste 5 beschikbare tijdsloten te tonen; u mag ook willekeurige 5 beschikbare tijdsloten presenteren.\n🗣️ Stijlrichtlijnen:\n\nSchrijf in het Nederlands (formeel, vriendelijk en geruststellend).\n\nHoud het bericht kort, overzichtelijk en actiegericht.\n\nGebruik indien nodig witregels voor leesbaarheid via WhatsApp.\n\nToon geen technische termen of ruwe JSON-data aan de klant.\n\n⚠️ Toon GEEN technische foutmeldingen of API-code. Alle informatie moet klantgericht zijn.\n\n📌 Voorbeeld van hoe tijdsloten gepresenteerd moeten worden:\n\n📅 De beschikbare tijdsloten op de gekozen dag zijn:\n\n08:00 – 08:15\n\n08:15 – 08:30\n\n08:30 – 08:45\n\n…\n\n17:15 – 17:30\n\n(De exacte tijden worden dynamisch gevuld vanuit BookableTime, dus toon steeds alle beschikbare slots.)\nAls de klant een nieuw tijdslot kiest uit de suggesties, bevestig dan de afspraak en sluit het gesprek af. Toon niet opnieuw beschikbare tijdsloten nadat de afspraak is bevestigd.**\n\n🔚 Sluit het bericht altijd af met:\n\"Met vriendelijke groet,\"\n\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        4144,
+        288
+      ],
+      "id": "41b58b03-3c91-4104-a905-5c95f512d5b2",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        4144,
+        464
+      ],
+      "id": "c19d4caf-dd16-4b41-ae7e-f5a0742143c3",
+      "name": "OpenAI Chat Model3",
+      "credentials": {
+        "openAiApi": {
+          "id": "Ybjk5J6intPnJU7B",
+          "name": "joost-key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "681342445061384",
+        "recipientPhoneNumber": "={{ $json.Phonenumber }}",
+        "textBody": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        4752,
+        304
+      ],
+      "id": "e1a783ba-2b89-49be-aeb8-61a6ddcc9d7d",
+      "name": "WhatsApp Business Cloud4",
+      "webhookId": "77cbc4aa-6fc7-49f4-ad60-70a16386ca15",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "nyGC4cePXGCebXuT",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        4512,
+        304
+      ],
+      "id": "d72c4434-c73e-4ec7-8aee-d049090eef41",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "cf45195d-df30-46ec-a2f1-ffa551bdf4c1",
+                    "leftValue": "={{ $json.isWithin14Days }}",
+                    "rightValue": false,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1216,
+        160
+      ],
+      "id": "92e56969-46ed-4697-a42e-2939a6a10447",
+      "name": "Is Valid date?"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "681342445061384",
+        "recipientPhoneNumber": "={{ $('Chat Received').item.json.messages[0].from }}",
+        "textBody": "=Datum moet binnen 14 dagen zijn",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        352
+      ],
+      "id": "0a01283a-f5d9-40b8-b05d-97a97f3dc5d1",
+      "name": "Send message",
+      "webhookId": "8c761a02-198e-46ff-9530-9e0fb4f48044",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "nyGC4cePXGCebXuT",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "cf45195d-df30-46ec-a2f1-ffa551bdf4c1",
+                    "leftValue": "={{ $json.isAfter24Hours }}",
+                    "rightValue": false,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        800,
+        352
+      ],
+      "id": "a3192c68-3b7e-4a03-b7fe-20acae5f1358",
+      "name": "Is Valid date?1"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "681342445061384",
+        "recipientPhoneNumber": "={{ $('Chat Received').item.json.messages[0].from }}",
+        "textBody": "=U kunt geen afspraak maken binnen 24 uur",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        960,
+        352
+      ],
+      "id": "31d4bb3f-807e-4ed1-aaf1-9f25578d96b8",
+      "name": "Send message1",
+      "webhookId": "8c761a02-198e-46ff-9530-9e0fb4f48044",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "nyGC4cePXGCebXuT",
+          "name": "WhatsApp account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AI Agent-Customer User case?": {
+      "main": [
+        [
+          {
+            "node": "json formate response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "json formate response": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Valid date?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Valid date?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Make Valid url | create customer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Combine",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "WhatsApp Business Cloud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "XML2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Make Valid url | create customer": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "XML2": {
+      "main": [
+        [
+          {
+            "node": "Is success?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is success?": {
+      "main": [
+        [
+          {
+            "node": "Combine",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error message clean",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error message clean": {
+      "main": [
+        [
+          {
+            "node": "OpenAI2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Make Valid url | Set appointment": {
+      "main": [
+        [
+          {
+            "node": "Http-Set appointment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Http-Set appointment": {
+      "main": [
+        [
+          {
+            "node": "XML7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine": {
+      "main": [
+        [
+          {
+            "node": "Make Valid url | Set appointment",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent-Customer User case?",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent-Customer User case?",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Received": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Current Year to Date": {
+      "main": [
+        [
+          {
+            "node": "AI Agent-Customer User case?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI2": {
+      "main": [
+        [
+          {
+            "node": "Send fail cause",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Analyzer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyzer": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "what wanted?": {
+      "main": [
+        [
+          {
+            "node": "Append Current Year to Date",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Make Valid url | Signature": {
+      "main": [
+        [
+          {
+            "node": "Get appointments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "XML": {
+      "main": [
+        [
+          {
+            "node": "Appointments Array",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Make Valid url | Signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Appointments Array": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get appointments": {
+      "main": [
+        [
+          {
+            "node": "XML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Get Customer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Get Customer",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse info": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Search in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WhatsApp Business Cloud1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "Analyzer",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "what wanted?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "customers": {
+      "ai_tool": [
+        [
+          {
+            "node": "Get Customer",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse info1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Customer": {
+      "main": [
+        [
+          {
+            "node": "Parse info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search in sheet": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "WhatsApp Business Cloud3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse info1": {
+      "main": [
+        [
+          {
+            "node": "If4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If4": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Business Cloud2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "XML7": {
+      "main": [
+        [
+          {
+            "node": "If6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If6": {
+      "main": [
+        [
+          {
+            "node": "confirm appointment2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI4": {
+      "main": [
+        [
+          {
+            "node": "If5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If5": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "confirm appointment1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Make Valid url | Get TimeSlots": {
+      "main": [
+        [
+          {
+            "node": "Http get time slot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Make Valid url | Get TimeSlots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Http get time slot": {
+      "main": [
+        [
+          {
+            "node": "XML6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "XML6": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Business Cloud4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Valid date?": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Valid date?1": {
+      "main": [
+        [
+          {
+            "node": "Send message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4b86b539-8947-45f4-b5df-f930fd82de49",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d0321c8069410b627f04bbaa1c7323e07a4b885016bbbeff58707378815925e5"
+  },
+  "id": "SnWr21UFwJEUf9Qo",
+  "tags": []
+}
