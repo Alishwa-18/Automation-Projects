@@ -1,0 +1,3018 @@
+{
+  "name": "hubspot chatbot",
+  "nodes": [
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "phone",
+              "value": "={{ $json.properties.phone.value }}"
+            },
+            {
+              "name": "firstname",
+              "value": "={{ $json.properties.firstname.value }}"
+            },
+            {
+              "name": "source",
+              "value": "={{ $json.properties.hs_object_source.value }}"
+            },
+            {
+              "name": "contact_id",
+              "value": "={{ $json.properties.hs_all_contact_vids.value }}"
+            },
+            {
+              "name": "created_date",
+              "value": "={{ $json.properties.createdate || new Date().toISOString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "800b09e7-b74f-43b5-b83e-e7328c6a75d6",
+      "name": "Set: Normalize Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        -5776,
+        1040
+      ],
+      "alwaysOutputData": true,
+      "notesInFlow": true,
+      "notes": "Purpose: Normalizes incoming HubSpot webhook data into standard format.\n\nInput: Raw HubSpot contact creation webhook\nOutput: Standardized contact data with fields:\n- phone, firstname, source\n- df_auto_sms_eligible, df_sms_opt_in  \n- contact_id, created_date\n\nHandles multiple HubSpot property variations (phone vs mobilephone, source vs hs_analytics_source)."
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pass",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -6320,
+        1040
+      ],
+      "id": "801573cc-daaa-438f-a29f-969028b2a36e",
+      "name": "Webhook1",
+      "webhookId": "19c03dfd-38d1-47e3-9746-60f707e48b42"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Business hours: 9am-5pm, UK time (escalation available 5pm-8pm)\n */\nconst TZ = 'Europe/London';  // UK timezone\n\n// Use event time if available, else now\nconst source =\n  $json.eventTime || $json.ts || $json.timestamp || $json.createdAt || null;\nconst date = source ? new Date(source) : new Date();\n\n// Get local hour in UK\nconst hour = Number(\n  new Intl.DateTimeFormat('en-GB', {\n    timeZone: TZ,\n    hour: '2-digit',\n    hour12: false,\n  }).format(date)\n);\n\n// Check business hours (9am-5pm) and escalation hours (5pm-8pm)\nconst in_business_hours = hour >= 9 && hour < 17; // 9am-5pm\nconst in_escalation_hours = hour >= 17 && hour < 20; // 5pm-8pm\nconst business_hours_ok = in_business_hours || in_escalation_hours;\n\n// Debug: full local time string\nconst local_time = new Intl.DateTimeFormat('en-GB', {\n  timeZone: TZ,\n  year: 'numeric', month: '2-digit', day: '2-digit',\n  hour: '2-digit', minute: '2-digit', second: '2-digit',\n  hour12: false,\n}).format(date);\n\nreturn {\n  json: {\n    ...$json,\n    business_hours_ok,\n    in_business_hours,\n    in_escalation_hours,\n    local_time,\n    tz_used: TZ\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5504,
+        1040
+      ],
+      "id": "110de340-23e3-418b-a251-989b319dbd3c",
+      "name": "Working hour Logic"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fd552281-8fac-4fae-8a18-29bed1b16785",
+              "leftValue": "={{ $json.business_hours_ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -5248,
+        1040
+      ],
+      "id": "365cd67e-d293-4ed7-ae81-0f88e6cae8af",
+      "name": "Is working Time?"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get firstname from HubSpot contact data\nconst firstname = {{ $json.properties.firstname.value }} || null;\n\n// Build message with fallback\nconst messageBody = firstname && firstname.trim() !== \"\"\n  ? `Hello {{ $json.properties.firstname.value }}, I'm Sarah from Drew Forsyth & Co. First of all, thank you for showing an interest in our kitchens. I just wanted to drop a message to see when would be a good time for a quick call with my colleague Hector, so we can learn a little about your upcoming project. Would there be a time tomorrow that works best for you?`\n  : `Hello there, I'm Sarah from Drew Forsyth & Co. First of all, thank you for showing an interest in our kitchens. I just wanted to drop a message to see when would be a good time for a quick call with my colleague Hector, so we can learn a little about your upcoming project. Would there be a time tomorrow that works best for you?`;\n\n// Return for Twilio\nreturn [{ body: messageBody }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4976,
+        864
+      ],
+      "id": "8525e032-9a24-4438-b9f9-2d7398907f8c",
+      "name": "Compose Intro SMS"
+    },
+    {
+      "parameters": {
+        "from": "+447414279909",
+        "to": "={{ $('Fetch Contact').item.json.properties.hs_calculated_phone_number.value }}",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -4576,
+        864
+      ],
+      "id": "ba8992e4-97b9-420c-a39b-203639858db8",
+      "name": "Customer SMS?",
+      "credentials": {
+        "twilioApi": {
+          "id": "Tbw9FX7sYuA94rSv",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "from": "+447414279909",
+        "to": "={{ $('Working hour Logic').item.json.phone }}",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -4576,
+        1120
+      ],
+      "id": "788d898c-0f76-4826-a996-e90d099a4ea9",
+      "name": "Customer AI SMS",
+      "credentials": {
+        "twilioApi": {
+          "id": "Tbw9FX7sYuA94rSv",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "operation": "get",
+        "contactId": {
+          "__rl": true,
+          "value": "={{ $json.body.vid }}",
+          "mode": "id"
+        },
+        "additionalFields": {
+          "propertiesCollection": {
+            "propertiesValues": {
+              "properties": [
+                "phone",
+                "mobilephone",
+                "firstname",
+                "lastname",
+                "source"
+              ],
+              "propertyMode": "valueOnly"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.1,
+      "position": [
+        -6048,
+        1040
+      ],
+      "id": "7317aeea-674a-46e4-bb71-c59c0be5938f",
+      "name": "Fetch Contact",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "notesInFlow": true,
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "CSdbNJFlUJ18qY2A",
+          "name": "HubSpot App Token account"
+        }
+      },
+      "notes": "Purpose: Fetches full contact record from HubSpot using objectId from webhook.\n\nInput: objectId from webhook ({{ $json.body[0].objectId }})\nOutput: Complete contact record with all properties\n\nProperties Retrieved:\n- phone, mobilephone (for SMS sending)\n- firstname, lastname (for personalization) \n- source (for eligibility filtering)\n- Custom properties: df_auto_sms_eligible, df_sms_opt_in\n\nAPI Approach:\nWebhook only provides event metadata, so we use objectId to fetch\nfull contact data via HubSpot API. This ensures we have all the\ncontact properties needed for SMS eligibility and personalization.\n\nCritical: This node bridges the gap between webhook event notification\nand actual contact data needed for the SMS workflow."
+    },
+    {
+      "parameters": {
+        "from": "=+447414279909",
+        "to": "+447572671972",
+        "message": "=There is a prospect who needs a human.\nLead number is:{{ $('Webhook2').item.json.body.From }}\nLead message is:{{ $('Is working Time?1').item.json.cus_replay }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -4560,
+        1408
+      ],
+      "id": "1d9c7973-e0c4-46bf-a456-9464e5033d83",
+      "name": "Alert Team",
+      "credentials": {
+        "twilioApi": {
+          "id": "Tbw9FX7sYuA94rSv",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6e22b159-0dfa-4c08-90d9-0882ab1a6210",
+              "name": "cus_replay",
+              "value": "={{ $('Webhook2').item.json.body.Body }}",
+              "type": "string"
+            },
+            {
+              "id": "e49de50d-0306-49a6-a0a7-57105c21c9fc",
+              "name": "cus-id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -5920,
+        1728
+      ],
+      "id": "c2131d46-4713-45ee-91a7-c215b62e3db9",
+      "name": "Customer Replay"
+    },
+    {
+      "parameters": {
+        "jsCode": "const lastUser = ($input.first().json.customer_replay|| '').toString().trim();\n\nconst factors = {\n  urgency: /(urgent|asap|immediately|emergency|call me|speak now)/i.test(lastUser) ? 2 : 0,\n  value: /(budget|£|\\b\\d{2,}\\b|deposit|invoice|quote)/i.test(lastUser) ? 2 : 0,\n  booking: /(book|site visit|measure|appointment|call)/i.test(lastUser) ? 2 : 0,\n};\n\nconst totalScore = factors.urgency + factors.value + factors.booking;\n\n// direct escalation if urgency keywords matched\nconst needsEscalation = factors.urgency === 2;\n\nreturn [\n  {\n    json: {\n      inputMessage: lastUser,\n      factors,\n      totalScore,\n      needsEscalation\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5072,
+        1520
+      ],
+      "id": "fb8044d6-f859-45d4-b528-79a3e39c48bb",
+      "name": "Check Urgent logic"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "aed11d95-46be-4f3c-9808-662bd3cbacbd",
+              "leftValue": "={{ $json.needsEscalation }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -4832,
+        1520
+      ],
+      "id": "72820589-e281-4fd8-a740-7b20a546f6c2",
+      "name": "Urgent case?"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -5072,
+        2256
+      ],
+      "id": "300deae3-7d56-41ab-9d3c-2c27edca850e",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "bWgii2AEuzfE4P22",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Customer message: \"{{ $('Customer Replay').item.json.cus_replay }}\"\nPrevious conversation context: [Use memory to understand what's already been discussed]\nCurrent UK time: {{ $('Working hour Logic2').item.json.local_time }}\nBusiness hours: 9am-5pm UK time\n\nRespond as Sarah, building on previous conversation context.",
+        "options": {
+          "systemMessage": "You are Sarah, a human team member. Never mention AI, automation, or being a virtual assistant. Stay casual, polite, and professional, not salesy or overly enthusiastic. Your goal is to agree a time for a short discovery call during office hours unless escalation has arranged otherwise. Do not collect project details.\n\nTONE AND STYLE\n- Human SMS voice. Short, natural sentences. Max 100 words per message.\n- No emojis. No parentheses in user-visible text. Avoid slashes, semicolons, or overly complex punctuation.\n- Use British English.\n- Use 12-hour times with am/pm, for example 2pm or 2:15pm.\n- For ranges, write “ 9 to 5 ” instead of a dash range.\n- Never mention time zones like GMT or UTC. Assume local time.\n- Never suggest the call can happen now. Always ask when would suit.\n\nCONVERSATION RULES\n- Keep each message short, natural, and conversational.\n- Never break character. Never mention AI, automation, or that you’re a virtual assistant.\n- Use SMS-appropriate language that is simple, friendly, and not overly formal.\n\nCONTEXT & MEMORY (IMPORTANT)\n- Always remember previous turns in this conversation. If the customer has already provided information (e.g., availability, preferred day/time, can/can’t do 9 to 5, desire for digital brochure, email address), do not ask for it again. Build on what they have already told you.\n- Maintain an internal, invisible scratchpad (do not show or mention it) with:\n  availability_day, availability_time, time_preference_ish, can_do_office_hours, needs_extended_hours, brochure_preference (post/digital), email, urgency_flag, call_status (seeking_time / proposed / confirmed).\n- If the customer changes a detail, update the scratchpad and follow the most recent information.\n- If there’s a conflict or uncertainty, ask one brief confirmation question rather than restarting the flow.\n\nTIME HANDLING\n- Standard office hours: Monday to Friday, 9 to 5.\n- Extended hours (exceptions Hector can make): Monday to Thursday, 5 to 7pm.\n- If the person gives a day but no time, ask for a time on that day and offer two nearby options, for example Would 2pm or 3:30pm work.\n- If they give a time-ish phrase such as 2ish, around 2, or mid-afternoon, interpret ish as plus or minus 30 minutes. Propose a concrete time near their preference first and one nearby fallback, for example How about 2:15pm, or 2:30pm.\n- Respect stated preferences. Do not push unrelated slots (for example, do not default to 10 to 11am if they asked for something around 2pm).\n- If they cannot do 9 to 5, offer extended-hour options on Monday to Thursday between 5 and 7pm (for example, 5:15pm or 5:30pm), then confirm if accepted.\n- If they request outside both office and extended hours, steer to the next available office or extended slot: We’re usually available 9 to 5, and on Monday to Thursday we can do 5 to 7pm. What time in those windows would suit you.\n- If they select a time within office or extended hours, confirm and stop asking for times.\n- If they say urgent, urgency, immediately, or emergency, reply with: It’s a bit late to call now, but I wanted to acknowledge your enquiry. Is there a time tomorrow when we could have a quick call about your project. Then book accordingly.\n\nDISCOVERY CALL EXPLANATION\n- If they ask what the discovery call is about, reply with:\nIt is a call to learn more about what you are looking for so we can send the right information to you. It is also to check your address is correct before we post you a brochure.\n\nDIGITAL BROCHURE PATH\n- If they do not want a posted brochure and prefer a digital brochure, no call is required. Offer to email them a link to the digital brochure.\n- If you do not have their email address, ask for the best email to send the link.\n- Do not output booking confirmation JSON for this path.\n\nCONFIRMATION BEHAVIOUR\n- If the lead provides a time for a call, confirm it briefly and say Hector will be in touch. End the user-visible confirmation with: Thank you.\n- After confirmation, do not ask for time again.\n- When the booking is confirmed, also output on a new line exactly this JSON and nothing else:\n{\"status\":\"confirmed\"}\n\nPOST-CONFIRMATION ACKNOWLEDGEMENTS\n- If, after confirmation, the lead says Thank you, Thanks, Ok, Okay, Ok thanks, or similar, reply with a brief Thank you and do not restart the booking.\n\nSELF-CHECK BEFORE SENDING\n- Message is under 100 words and reads like a human SMS.\n- You have checked the conversation history and avoided re-asking for information already provided (availability, email, brochure preference).\n- No parentheses in user-visible text. No GMT or UTC mentions.\n- If the person said ish or around a time, your suggestion is within plus or minus 30 minutes of their preference.\n- If you confirmed a time, your user-visible sentence ends with Thank you., and you included the JSON line exactly as specified on a new line (braces are allowed for the JSON line only).\n\nDO-NOTS\n- Do not reveal or imply you are AI, automated, or an assistant.\n- Do not suggest calling now.\n- Do not ignore the person’s stated time preference.\n- Do not re-ask for times after you have confirmed.\n- Do not expose the internal scratchpad or metadata.\n\nBOOKING CONFIRMATION RULES:\nIf the lead provides a time for a call (e.g., “tomorrow at 9am”), you must always return a valid JSON with exactly this field: \n\"status\": \"confirmed\"\nGive the status value in separate json field of status "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -5072,
+        2048
+      ],
+      "id": "82ae7b44-caef-48a9-aa62-76a86d3f481b",
+      "name": "Alert SMS-1"
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "operation": "search",
+        "limit": 1,
+        "filterGroupsUi": {
+          "filterGroupsValues": [
+            {
+              "filtersUi": {
+                "filterValues": [
+                  {
+                    "propertyName": "phone|string",
+                    "value": "={{ $json.body.From }}"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2.1,
+      "position": [
+        -6128,
+        1728
+      ],
+      "id": "21ef41e3-a933-4357-8dd3-530e7f862ed8",
+      "name": "Find in hubspot",
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "CSdbNJFlUJ18qY2A",
+          "name": "HubSpot App Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Business hours: 9am-5pm, UK time (escalation available 5pm-8pm)\n */\nconst TZ = 'Europe/London';  // UK timezone\n\n// Use event time if available, else now\nconst source =\n  $json.eventTime || $json.ts || $json.timestamp || $json.createdAt || null;\nconst date = source ? new Date(source) : new Date();\n\n// Get local hour in UK\nconst hour = Number(\n  new Intl.DateTimeFormat('en-GB', {\n    timeZone: TZ,\n    hour: '2-digit',\n    hour12: false,\n  }).format(date)\n);\n\n// Check business hours (9am-5pm) and escalation hours (5pm-8pm)\nconst in_business_hours = hour >= 9 && hour < 17; // 9am-5pm\nconst in_escalation_hours = hour >= 17 && hour < 20; // 5pm-8pm\nconst business_hours_ok = in_business_hours || in_escalation_hours;\n\n// Debug: full local time string\nconst local_time = new Intl.DateTimeFormat('en-GB', {\n  timeZone: TZ,\n  year: 'numeric', month: '2-digit', day: '2-digit',\n  hour: '2-digit', minute: '2-digit', second: '2-digit',\n  hour12: false,\n}).format(date);\n\nreturn {\n  json: {\n    ...$json,\n    business_hours_ok,\n    in_business_hours,\n    in_escalation_hours,\n    local_time,\n    tz_used: TZ\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5536,
+        1728
+      ],
+      "id": "f3ce9539-d2b4-45ee-b195-c0d9d5ad8e91",
+      "name": "Working hour Logic2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fd552281-8fac-4fae-8a18-29bed1b16785",
+              "leftValue": "={{ $json.business_hours_ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -5360,
+        1728
+      ],
+      "id": "a4f6af21-6e13-4483-988e-2db78ebe8fa8",
+      "name": "Is working Time?1"
+    },
+    {
+      "parameters": {
+        "from": "+447414279909",
+        "to": "={{ $('Webhook2').item.json.body.From }}",
+        "message": "={{ $json.reply }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -3872,
+        1696
+      ],
+      "id": "65af3821-d1ef-49cf-9aa8-1bf43864d01d",
+      "name": "Customer AI SMS3",
+      "credentials": {
+        "twilioApi": {
+          "id": "Tbw9FX7sYuA94rSv",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ifa",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -6320,
+        1728
+      ],
+      "id": "70181345-ea15-47a9-9726-663fc59be8a4",
+      "name": "Webhook2",
+      "webhookId": "36abad23-08a2-4e20-a559-e6bf06e90515"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook2').item.json.body.From }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -4976,
+        2256
+      ],
+      "id": "2e859eaf-3e0d-47a1-9287-f35a47d5e07a",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Customer message: \"{{ $('Customer Replay').item.json.cus_replay }}\"\nPrevious conversation context: [Use memory to understand what's already been discussed]\nCurrent UK time: {{ $('Working hour Logic2').item.json.local_time }}\nBusiness hours: 9am-5pm UK time\n\nRespond as Sarah, building on previous conversation context.\n\n \n",
+        "options": {
+          "systemMessage": "You are Sarah, a human team member. Never mention AI, automation, or being a virtual assistant. Stay casual, polite, and professional, not salesy or overly enthusiastic. Your goal is to agree a time for a short discovery call during office hours unless escalation has arranged otherwise. Do not collect project details.\n\nTONE AND STYLE\n- Human SMS voice. Short, natural sentences. Max 100 words per message.\n- No emojis. No parentheses in user-visible text. Avoid slashes, semicolons, or overly complex punctuation.\n- Use British English.\n- Use 12-hour times with am/pm, for example 2pm or 2:15pm.\n- For ranges, write “ 9 to 5 ” instead of a dash range.\n- Never mention time zones like GMT or UTC. Assume local time.\n- Never suggest the call can happen now. Always ask when would suit.\n\nCONVERSATION RULES\n- Keep each message short, natural, and conversational.\n- Never break character. Never mention AI, automation, or that you’re a virtual assistant.\n- Use SMS-appropriate language that is simple, friendly, and not overly formal.\n\nCONTEXT & MEMORY (IMPORTANT)\n- Always remember previous turns in this conversation. If the customer has already provided information (e.g., availability, preferred day/time, can/can’t do 9 to 5, desire for digital brochure, email address), do not ask for it again. Build on what they have already told you.\n- Maintain an internal, invisible scratchpad (do not show or mention it) with:\n  availability_day, availability_time, time_preference_ish, can_do_office_hours, needs_extended_hours, brochure_preference (post/digital), email, urgency_flag, call_status (seeking_time / proposed / confirmed).\n- If the customer changes a detail, update the scratchpad and follow the most recent information.\n- If there’s a conflict or uncertainty, ask one brief confirmation question rather than restarting the flow.\n\nTIME HANDLING\n- Standard office hours: Monday to Friday, 9 to 5.\n- Extended hours (exceptions Hector can make): Monday to Thursday, 5 to 7pm.\n- If the person gives a day but no time, ask for a time on that day and offer two nearby options, for example Would 2pm or 3:30pm work.\n- If they give a time-ish phrase such as 2ish, around 2, or mid-afternoon, interpret ish as plus or minus 30 minutes. Propose a concrete time near their preference first and one nearby fallback, for example How about 2:15pm, or 2:30pm.\n- Respect stated preferences. Do not push unrelated slots (for example, do not default to 10 to 11am if they asked for something around 2pm).\n- If they cannot do 9 to 5, offer extended-hour options on Monday to Thursday between 5 and 7pm (for example, 5:15pm or 5:30pm), then confirm if accepted.\n- If they request outside both office and extended hours, steer to the next available office or extended slot: We’re usually available 9 to 5, and on Monday to Thursday we can do 5 to 7pm. What time in those windows would suit you.\n- If they select a time within office or extended hours, confirm and stop asking for times.\n- If they say urgent, urgency, immediately, or emergency, reply with: It’s a bit late to call now, but I wanted to acknowledge your enquiry. Is there a time tomorrow when we could have a quick call about your project. Then book accordingly.\n\nDISCOVERY CALL EXPLANATION\n- If they ask what the discovery call is about, reply with:\nIt is a call to learn more about what you are looking for so we can send the right information to you. It is also to check your address is correct before we post you a brochure.\n\nDIGITAL BROCHURE PATH\n- If they do not want a posted brochure and prefer a digital brochure, no call is required. Offer to email them a link to the digital brochure.\n- If you do not have their email address, ask for the best email to send the link.\n- Do not output booking confirmation JSON for this path.\n\nCONFIRMATION BEHAVIOUR\n- If the lead provides a time for a call, confirm it briefly and say Hector will be in touch. End the user-visible confirmation with: Thank you.\n- After confirmation, do not ask for time again.\n- When the booking is confirmed, also output on a new line exactly this JSON and nothing else:\n{\"status\":\"confirmed\"}\n\nPOST-CONFIRMATION ACKNOWLEDGEMENTS\n- If, after confirmation, the lead says Thank you, Thanks, Ok, Okay, Ok thanks, or similar, reply with a brief Thank you and do not restart the booking.\n\nSELF-CHECK BEFORE SENDING\n- Message is under 100 words and reads like a human SMS.\n- You have checked the conversation history and avoided re-asking for information already provided (availability, email, brochure preference).\n- No parentheses in user-visible text. No GMT or UTC mentions.\n- If the person said ish or around a time, your suggestion is within plus or minus 30 minutes of their preference.\n- If you confirmed a time, your user-visible sentence ends with Thank you., and you included the JSON line exactly as specified on a new line (braces are allowed for the JSON line only).\n\nDO-NOTS\n- Do not reveal or imply you are AI, automated, or an assistant.\n- Do not suggest calling now.\n- Do not ignore the person’s stated time preference.\n- Do not re-ask for times after you have confirmed.\n- Do not expose the internal scratchpad or metadata.\n\nBOOKING CONFIRMATION RULES:\nIf the lead provides a time for a call (e.g., “tomorrow at 9am”), you must always return a valid JSON with exactly this field: \n\"status\": \"confirmed\"\nGive the status value in separate json field of status "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -4592,
+        1696
+      ],
+      "id": "cd7fc924-530b-4e89-ad2f-b307737d2042",
+      "name": "Alert SMS-"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Capture incoming user message\nconst inputMessage =$('Customer Replay').first().json.cus_replay ;  \n\n// Define your intro message (after-hours)\nconst response =$('Code2').first().json.reply;\n\n// Build summary\nconst summary = `Conversation so far:\n- Customer: \"${inputMessage}\"\n- System: \"${response}\"`;\n\nreturn [{ summary, response }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4096,
+        2048
+      ],
+      "id": "e6c79c95-e947-4808-a6b6-c6270e21f514",
+      "name": "Summary1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get firstname from HubSpot contact data\nconst firstname = {{ $json.properties.firstname.value }} || null;\n\n// Build message with fallback\nconst messageBody = firstname && firstname.trim() !== \"\"\n  ? `Hello {{ $json.properties.firstname.value }}, I'm Sarah from Drew Forsyth & Co. First of all, thank you for showing an interest in our kitchens. I just wanted to drop a message to see when would be a good time for a quick call with my colleague Hector, so we can learn a little about your upcoming project. Would there be a time tomorrow that works best for you?`\n  : `Hello there, I'm Sarah from Drew Forsyth & Co. First of all, thank you for showing an interest in our kitchens. I just wanted to drop a message to see when would be a good time for a quick call with my colleague Hector, so we can learn a little about your upcoming project. Would there be a time tomorrow that works best for you?`;\n\n// Return for Twilio\nreturn [{ body: messageBody }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4976,
+        1120
+      ],
+      "id": "faa115e7-cf93-445a-83a3-4e9288bb34fc",
+      "name": "Compose Intro SMS1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -4608,
+        1872
+      ],
+      "id": "2a2c02c5-8d1c-479e-a85e-b7a05e03e127",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "bWgii2AEuzfE4P22",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook2').item.json.body.From }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -4496,
+        1888
+      ],
+      "id": "a73f1d90-00fe-4af1-b1eb-b721d770b42e",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Capture incoming user message\nconst inputMessage = $('Customer Replay').first().json.cus_replay ;  \n\n// Define your intro message (after-hours)\nconst response =$('Code3').first().json.reply;\n\n// Build summary\nconst summary = `Conversation so far:\n- Customer: \"${inputMessage}\"\n- System: \"${response}\"`;\n\nreturn [{ summary, response }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3664,
+        1696
+      ],
+      "id": "f3c554c4-d7b6-42e7-80de-c1c320fe00c7",
+      "name": "Summary"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Here is the full conversation history for contact {{ $json.contactId }}:\n\n{{ $json.conversation }}\n\nSummarize this conversation in 3–5 sentences. Include:\n- The confirmed booking time/date (if present)\n- Customer name (if mentioned)\n- Key details about their kitchen project\n\nDo not add extra commentary. Keep it factual and brief.\n",
+        "options": {
+          "systemMessage": "You are an assistant that summarizes booking conversations between prospects and our AI agent.\nAlways be concise, accurate, and professional.\nReturn only what the sales team needs to know.\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -5280,
+        2368
+      ],
+      "id": "2eda7af6-c998-4215-8645-7e800e6c2409",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "from": "=+447414279909",
+        "to": "+447572671972",
+        "message": "=New Booking Summary \nContact:{{ $('Get row(s) in sheet').item.json['Contact ID'] }}\nSummary:{{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -4976,
+        2368
+      ],
+      "id": "989a0d62-a462-4cf4-868f-3337c678bf03",
+      "name": "Alert Team1",
+      "credentials": {
+        "twilioApi": {
+          "id": "Tbw9FX7sYuA94rSv",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e3e60832-d4ee-440a-b3cd-c600e383ee2e",
+              "leftValue": "={{ $('Code2').item.json.status }}",
+              "rightValue": "confirmed",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3712,
+        2048
+      ],
+      "id": "1cb1914e-cb72-43d3-8a54-1ead175cb707",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get raw AI output (from aiText or reply field)\nconst raw = $('Alert SMS-1').first().json.output;\n\n// Default = null\nlet status = null;\n\ntry {\n  // Try to find JSON in the output\n  const match = raw.match(/\\{[\\s\\S]*\\}/);\n  if (match) {\n    const parsed = JSON.parse(match[0]);\n    if (parsed.status === \"confirmed\") {\n      status = \"confirmed\";\n    }\n  }\n} catch (e) {\n  // Do nothing if parsing fails\n}\n\nreturn {\n  json: {\n    reply: raw.replace(/\\{[\\s\\S]*\\}/, \"\").trim(), // clean reply without JSON\n    status\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4512,
+        2048
+      ],
+      "id": "18d1182a-5e78-4b79-a542-72f2b6290ab5",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get raw AI output (from aiText or reply field)\nconst raw = $('Alert SMS-').first().json.output;\n\n// Default = null\nlet status = null;\n\ntry {\n  // Try to find JSON in the output\n  const match = raw.match(/\\{[\\s\\S]*\\}/);\n  if (match) {\n    const parsed = JSON.parse(match[0]);\n    if (parsed.status === \"confirmed\") {\n      status = \"confirmed\";\n    }\n  }\n} catch (e) {\n  // Do nothing if parsing fails\n}\n\nreturn {\n  json: {\n    reply: raw.replace(/\\{[\\s\\S]*\\}/, \"\").trim(), // clean reply without JSON\n    status\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4080,
+        1696
+      ],
+      "id": "a32a2d4c-13e7-48da-8fbe-91804cccf188",
+      "name": "Code3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e3e60832-d4ee-440a-b3cd-c600e383ee2e",
+              "leftValue": "={{ $('Code3').item.json.status }}",
+              "rightValue": "confirmed",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3264,
+        1696
+      ],
+      "id": "06deee24-64c8-48b7-80c8-6e8e2d588bd3",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y",
+          "mode": "list",
+          "cachedResultName": "Notes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Contact ID": "={{ $('Working hour Logic').item.json.vid }}",
+            "AI Response": "={{ $json.body }}",
+            "Customer Reply": "={{ $('Fetch Contact').item.json.properties.message.value }}",
+            "Status": "Pending",
+            "Followup_3h": "False",
+            "Followup_24h": "False",
+            "Followup_48h": "False"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Contact ID",
+              "displayName": "Contact ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Customer Reply",
+              "displayName": "Customer Reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI Response",
+              "displayName": "AI Response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Followup_3h",
+              "displayName": "Followup_3h",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Followup_24h",
+              "displayName": "Followup_24h",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Followup_48h",
+              "displayName": "Followup_48h",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -4352,
+        864
+      ],
+      "id": "0ace9700-e1f8-4cf6-8635-a786e828f46c",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "LVp4yPUNs80ekwcm",
+          "name": "Dev me"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y",
+          "mode": "list",
+          "cachedResultName": "Notes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Contact ID": "={{ $('Working hour Logic').item.json.vid }}",
+            "AI Response": "={{ $json.body }}",
+            "Customer Reply": "={{ $('Fetch Contact').item.json.properties.message.value }}",
+            "Status": "Pending"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Contact ID",
+              "displayName": "Contact ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Customer Reply",
+              "displayName": "Customer Reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI Response",
+              "displayName": "AI Response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -4352,
+        1120
+      ],
+      "id": "3d79b478-b54a-46b4-91bb-421e5fed7515",
+      "name": "Append row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "LVp4yPUNs80ekwcm",
+          "name": "Dev me"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y",
+          "mode": "list",
+          "cachedResultName": "Notes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Contact ID": "={{ $('Find in hubspot').item.json.id }}",
+            "AI Response": "=",
+            "Customer Reply": "={{ $('Is working Time?1').item.json.cus_replay }}",
+            "Status": "Pending"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Contact ID",
+              "displayName": "Contact ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Customer Reply",
+              "displayName": "Customer Reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI Response",
+              "displayName": "AI Response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -4336,
+        1408
+      ],
+      "id": "8883208d-95e7-481f-a253-cc1e103358ff",
+      "name": "Append row in sheet2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "LVp4yPUNs80ekwcm",
+          "name": "Dev me"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y",
+          "mode": "list",
+          "cachedResultName": "Notes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Contact ID": "={{ $('Find in hubspot').item.json.id }}",
+            "AI Response": "={{ $('Code3').item.json.reply }}",
+            "Customer Reply": "={{ $('Customer Replay').item.json.cus_replay }}",
+            "Status": "Pending"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Contact ID",
+              "displayName": "Contact ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Customer Reply",
+              "displayName": "Customer Reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI Response",
+              "displayName": "AI Response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -3456,
+        1696
+      ],
+      "id": "5b3765f3-fff3-4755-912c-93cf4be24bc0",
+      "name": "Append row in sheet6",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "LVp4yPUNs80ekwcm",
+          "name": "Dev me"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y",
+          "mode": "list",
+          "cachedResultName": "Notes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Contact ID": "={{ $('Find in hubspot').item.json.id }}",
+            "AI Response": "={{ $('Code2').item.json.reply }}",
+            "Customer Reply": "={{ $('Customer Replay').item.json.cus_replay }}",
+            "Status": "Pending"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Contact ID",
+              "displayName": "Contact ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Customer Reply",
+              "displayName": "Customer Reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI Response",
+              "displayName": "AI Response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -3904,
+        2048
+      ],
+      "id": "5da88710-8ea6-499c-b065-1ce3fd067831",
+      "name": "Append row in sheet7",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "LVp4yPUNs80ekwcm",
+          "name": "Dev me"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y",
+          "mode": "list",
+          "cachedResultName": "Notes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Contact ID": "={{ $('Find in hubspot').item.json.id }}",
+            "AI Response": "={{ $('Code3').item.json.reply }}",
+            "Customer Reply": "={{ $('Customer Replay').item.json.cus_replay }}",
+            "Status": "Confirmed"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Contact ID",
+              "displayName": "Contact ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Customer Reply",
+              "displayName": "Customer Reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI Response",
+              "displayName": "AI Response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -3008,
+        1584
+      ],
+      "id": "b7160c33-8e12-4011-a5a3-c492075a379e",
+      "name": "Append row in sheet8",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "LVp4yPUNs80ekwcm",
+          "name": "Dev me"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y",
+          "mode": "list",
+          "cachedResultName": "Notes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Contact ID": "={{ $('Find in hubspot').item.json.id }}",
+            "AI Response": "={{ $('Code2').item.json.reply }}",
+            "Customer Reply": "={{ $('Customer Replay').item.json.cus_replay }}",
+            "Status": "Confirmed"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Contact ID",
+              "displayName": "Contact ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Customer Reply",
+              "displayName": "Customer Reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "AI Response",
+              "displayName": "AI Response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -3472,
+        2032
+      ],
+      "id": "1fc81be4-d895-4689-bd66-25472e760af0",
+      "name": "Append row in sheet9",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "LVp4yPUNs80ekwcm",
+          "name": "Dev me"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "from": "+447414279909",
+        "to": "={{ $('Webhook2').item.json.body.From }}",
+        "message": "={{ $json.reply }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -4304,
+        2048
+      ],
+      "id": "b619fd90-d1cb-4a40-90f9-de0a1a43c686",
+      "name": "Customer AI SMS4",
+      "credentials": {
+        "twilioApi": {
+          "id": "Tbw9FX7sYuA94rSv",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y",
+          "mode": "list",
+          "cachedResultName": "Notes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Status",
+              "lookupValue": "Confirmed"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -6096,
+        2368
+      ],
+      "id": "356afbc2-7c10-453e-b715-4fccaa8f4dcc",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "LVp4yPUNs80ekwcm",
+          "name": "Dev me"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -5280,
+        2560
+      ],
+      "id": "2e6bbe10-3497-42b8-b095-ed794d2ce319",
+      "name": "OpenAI Chat Model3",
+      "credentials": {
+        "openAiApi": {
+          "id": "bWgii2AEuzfE4P22",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y",
+          "mode": "list",
+          "cachedResultName": "Notes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Notified",
+            "row_number": "={{ $('Get row(s) in sheet').item.json.row_number }}"
+          },
+          "matchingColumns": [
+            "Contact ID"
+          ],
+          "schema": [
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Contact ID",
+              "displayName": "Contact ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Customer Reply",
+              "displayName": "Customer Reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "AI Response",
+              "displayName": "AI Response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Followup_3h",
+              "displayName": "Followup_3h",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Followup_24h",
+              "displayName": "Followup_24h",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Followup_48h",
+              "displayName": "Followup_48h",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -4768,
+        2368
+      ],
+      "id": "1297ee14-d288-4ea2-9eda-aec93ff03b0e",
+      "name": "Update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "LVp4yPUNs80ekwcm",
+          "name": "Dev me"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 90
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -4768,
+        864
+      ],
+      "id": "4d555e6d-89ca-488d-bbf4-32c4e589aff4",
+      "name": "90 sec wait",
+      "webhookId": "f8cf2bab-32be-4d7f-9c28-0a09711e259c"
+    },
+    {
+      "parameters": {
+        "amount": 90
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -4768,
+        1120
+      ],
+      "id": "11230cc7-1cac-468b-a4f4-3aaf372d4e28",
+      "name": "90 sec wait1",
+      "webhookId": "f8cf2bab-32be-4d7f-9c28-0a09711e259c"
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "hour": 9
+            }
+          ]
+        }
+      },
+      "id": "cecda9bc-448f-4894-8862-49f439545cd5",
+      "name": "Cron",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        -6320,
+        2368
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -4256,
+        1696
+      ],
+      "id": "a436a484-9bec-4b7e-ad6b-4e106f8e7ea6",
+      "name": "Stop-30 sec",
+      "webhookId": "f8abf88d-d83a-4485-bbb6-93cc1e9931d7"
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -4720,
+        2048
+      ],
+      "id": "450d8f0e-76f0-4ac6-93b4-404c170ab30d",
+      "name": "Stop_30 sec",
+      "webhookId": "f8abf88d-d83a-4485-bbb6-93cc1e9931d7"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "36742e70-90f4-452a-8d11-6779243a4b65",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3680,
+        1024
+      ],
+      "id": "ace73c7a-ed8d-441e-a234-e73564d00ad2",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get firstname from HubSpot contact data\nconst firstname = $json.properties.firstname.value || null;\n\n// Build message with fallback\nconst messageBody = firstname && firstname.trim() !== \"\"\n  ? `Hello $json.properties.firstname.value I'm Sarah from Drew Forsyth & Co. First of all, thank you for showing an interest in our kitchens. I just wanted to drop a message to see when would be a good time for a quick call with my colleague Hector, so we can learn a little about your upcoming project. Would there be a time tomorrow that works best for you?`\n  : `Hello there, I'm Sarah from Drew Forsyth & Co. First of all, thank you for showing an interest in our kitchens. I just wanted to drop a message to see when would be a good time for a quick call with my colleague Hector, so we can learn a little about your upcoming project. Would there be a time tomorrow that works best for you?`;\n\n// Return for Twilio\nreturn [{ body: messageBody }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3456,
+        912
+      ],
+      "id": "934b16d6-cbd1-4cf7-a983-2c1955bbb41d",
+      "name": "Compose Intro SMS2"
+    },
+    {
+      "parameters": {
+        "amount": 35
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -3312,
+        912
+      ],
+      "id": "f42e2f73-d7d9-40e3-8f60-2783124014fd",
+      "name": "35 sec",
+      "webhookId": "f8cf2bab-32be-4d7f-9c28-0a09711e259c"
+    },
+    {
+      "parameters": {
+        "from": "+447414279909",
+        "to": "={{ $('Working hour Logic').item.json.phone }}",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -3168,
+        912
+      ],
+      "id": "e9905b35-fb5c-461b-a148-3447cb8c91df",
+      "name": "Customer AI SMS1",
+      "credentials": {
+        "twilioApi": {
+          "id": "Tbw9FX7sYuA94rSv",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 24,
+        "unit": "hours"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -3456,
+        1120
+      ],
+      "id": "b6121451-2036-4bb3-b770-92a1c2406338",
+      "name": "24 h",
+      "webhookId": "c1497c08-3006-4ed1-9def-d2125f0b35bd"
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "hours"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -4080,
+        1024
+      ],
+      "id": "0fed1969-2270-4d0b-90e3-62d21880db77",
+      "name": "3 h",
+      "webhookId": "473128fe-d7f7-4e9c-8c58-ed98a29b9859"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "36742e70-90f4-452a-8d11-6779243a4b65",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3168,
+        1120
+      ],
+      "id": "8daef046-8159-416b-b87c-3b63962ed350",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get firstname from HubSpot contact data\nconst firstname = $json.properties.firstname.value || null;\n\n// Build message with fallback\nconst messageBody = firstname && firstname.trim() !== \"\"\n  ? `Hello $json.properties.firstname.value I'm Sarah from Drew Forsyth & Co. First of all, thank you for showing an interest in our kitchens. I just wanted to drop a message to see when would be a good time for a quick call with my colleague Hector, so we can learn a little about your upcoming project. Would there be a time tomorrow that works best for you?`\n  : `Hello there, I'm Sarah from Drew Forsyth & Co. First of all, thank you for showing an interest in our kitchens. I just wanted to drop a message to see when would be a good time for a quick call with my colleague Hector, so we can learn a little about your upcoming project. Would there be a time tomorrow that works best for you?`;\n\n// Return for Twilio\nreturn [{ body: messageBody }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2928,
+        1024
+      ],
+      "id": "9f2bea62-4ab0-4865-9623-8ac32b9d2052",
+      "name": "Compose Intro SMS3"
+    },
+    {
+      "parameters": {
+        "amount": 35
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -2752,
+        1024
+      ],
+      "id": "aaf9fe88-a6ae-49cd-b148-60af514fc071",
+      "name": "35 sec1",
+      "webhookId": "f8cf2bab-32be-4d7f-9c28-0a09711e259c"
+    },
+    {
+      "parameters": {
+        "from": "+447414279909",
+        "to": "={{ $('Working hour Logic').item.json.phone }}",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2592,
+        1024
+      ],
+      "id": "bab44386-ee08-40dc-b21d-e11008af872e",
+      "name": "Customer AI SMS2",
+      "credentials": {
+        "twilioApi": {
+          "id": "Tbw9FX7sYuA94rSv",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 48,
+        "unit": "hours"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -2928,
+        1216
+      ],
+      "id": "63180cbc-20a2-4587-9633-d23c0f86e486",
+      "name": "48 h",
+      "webhookId": "d10d201b-5aaf-4206-b9b3-c303db3e0616"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b0aa89af-c3e2-4020-bc1b-5c91890990a2",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2592,
+        1216
+      ],
+      "id": "8eac64cb-4ef5-4f46-8066-3fb1d2fa7846",
+      "name": "If4"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get firstname from HubSpot contact data\nconst firstname = $json.properties.firstname.value || null;\n\n// Build message with fallback\nconst messageBody = firstname && firstname.trim() !== \"\"\n  ? `Hello $json.properties.firstname.value I'm Sarah from Drew Forsyth & Co. First of all, thank you for showing an interest in our kitchens. I just wanted to drop a message to see when would be a good time for a quick call with my colleague Hector, so we can learn a little about your upcoming project. Would there be a time tomorrow that works best for you?`\n  : `Hello there, I'm Sarah from Drew Forsyth & Co. First of all, thank you for showing an interest in our kitchens. I just wanted to drop a message to see when would be a good time for a quick call with my colleague Hector, so we can learn a little about your upcoming project. Would there be a time tomorrow that works best for you?`;\n\n// Return for Twilio\nreturn [{ body: messageBody }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2320,
+        1152
+      ],
+      "id": "b443f8f7-4199-41ad-9814-a67d7fb844aa",
+      "name": "Compose Intro SMS4"
+    },
+    {
+      "parameters": {
+        "amount": 35
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -2160,
+        1152
+      ],
+      "id": "3c0edc1a-040a-41c2-9d6d-b8ccde3ea8c8",
+      "name": "35 sec2",
+      "webhookId": "f8cf2bab-32be-4d7f-9c28-0a09711e259c"
+    },
+    {
+      "parameters": {
+        "from": "+447414279909",
+        "to": "={{ $('Working hour Logic').item.json.phone }}",
+        "message": "={{ $json.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        -2000,
+        1152
+      ],
+      "id": "dee4fba7-a98a-42eb-bcd8-f0fd566aee27",
+      "name": "Customer AI SMS5",
+      "credentials": {
+        "twilioApi": {
+          "id": "Tbw9FX7sYuA94rSv",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y",
+          "mode": "list",
+          "cachedResultName": "Notes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Contact ID": "={{ $('Find in hubspot').item.json.id }}",
+            "Followup_3h": "True",
+            "Followup_24h": "True",
+            "Followup_48h": "True"
+          },
+          "matchingColumns": [
+            "Contact ID"
+          ],
+          "schema": [
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Contact ID",
+              "displayName": "Contact ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Customer Reply",
+              "displayName": "Customer Reply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "AI Response",
+              "displayName": "AI Response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Followup_3h",
+              "displayName": "Followup_3h",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Followup_24h",
+              "displayName": "Followup_24h",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Followup_48h",
+              "displayName": "Followup_48h",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -5728,
+        1728
+      ],
+      "id": "ec9a6f16-e357-4bd5-a800-f9b37503731a",
+      "name": "Update row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "LVp4yPUNs80ekwcm",
+          "name": "Dev me"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y",
+          "mode": "list",
+          "cachedResultName": "Notes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Followup_3h",
+              "lookupValue": "False"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -3888,
+        1024
+      ],
+      "id": "18ad6cd9-b546-401e-a8a8-f45b743b18cc",
+      "name": "Get row(s) in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "LVp4yPUNs80ekwcm",
+          "name": "Dev me"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y",
+          "mode": "list",
+          "cachedResultName": "Notes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Followup_24h",
+              "lookupValue": "False"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -3312,
+        1120
+      ],
+      "id": "c7f9c3e8-29d9-4b64-af31-c14806fa9b1d",
+      "name": "Get row(s) in sheet2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "LVp4yPUNs80ekwcm",
+          "name": "Dev me"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y",
+          "mode": "list",
+          "cachedResultName": "Notes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Followup_48h",
+              "lookupValue": "False"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2752,
+        1216
+      ],
+      "id": "038c3b63-f140-4eb9-a2b6-5d64accf2395",
+      "name": "Get row(s) in sheet3",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "LVp4yPUNs80ekwcm",
+          "name": "Dev me"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const confirmed = items.map(i => i.json);\nconst uniqueIds = [...new Set(confirmed.map(r => r[\"Contact ID\"]))];\n\nreturn uniqueIds.map(id => ({ json: { contactId: id } }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5888,
+        2368
+      ],
+      "id": "d018a8c2-5caa-466c-a30b-e48f6a9abcaf",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y",
+          "mode": "list",
+          "cachedResultName": "Notes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Gx6eYPT2QuNh3cVgpVbB6c2f8gw8uAVkHpRSg3Whh-Y/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Contact ID"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -5680,
+        2368
+      ],
+      "id": "fc4cceaa-073f-46ae-86ab-8e809257597e",
+      "name": "Get row(s) in sheet4",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "j1mvBMmEbFOtDZ4z",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = items.map(i => i.json);\n\n// Optional: sort if you have timestamp column\nrows.sort((a,b) => new Date(a.ts || 0) - new Date(b.ts || 0));\n\nlet convo = rows.map(r => {\n  return [\n    r[\"Customer Reply\"] ? `Customer: ${r[\"Customer Reply\"]}` : null,\n    r[\"AI Response\"] ? `AI: ${r[\"AI Response\"]}` : null\n  ].filter(Boolean).join(\"\\n\");\n});\n\nreturn [{\n  json: {\n    contactId: rows[0]?.[\"Contact ID\"] || \"unknown\",\n    conversation: convo.join(\"\\n\\n\"),\n    status: rows.some(r => r.Status === \"Confirmed\") ? \"Confirmed\" : \"Pending\"\n  }\n}];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5472,
+        2368
+      ],
+      "id": "a3359096-53a6-4857-86b7-e464f87d6ca3",
+      "name": "Code1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Set: Normalize Input": {
+      "main": [
+        [
+          {
+            "node": "Working hour Logic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Fetch Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Working hour Logic": {
+      "main": [
+        [
+          {
+            "node": "Is working Time?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is working Time?": {
+      "main": [
+        [
+          {
+            "node": "Compose Intro SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Compose Intro SMS1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Intro SMS": {
+      "main": [
+        [
+          {
+            "node": "90 sec wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer AI SMS": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Contact": {
+      "main": [
+        [
+          {
+            "node": "Set: Normalize Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer Replay": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Urgent logic": {
+      "main": [
+        [
+          {
+            "node": "Urgent case?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Urgent case?": {
+      "main": [
+        [
+          {
+            "node": "Alert Team",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alert SMS-",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Alert SMS-1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert SMS-1": {
+      "main": [
+        [
+          {
+            "node": "Stop_30 sec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find in hubspot": {
+      "main": [
+        [
+          {
+            "node": "Customer Replay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Working hour Logic2": {
+      "main": [
+        [
+          {
+            "node": "Is working Time?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is working Time?1": {
+      "main": [
+        [
+          {
+            "node": "Check Urgent logic",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Alert SMS-1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer AI SMS3": {
+      "main": [
+        [
+          {
+            "node": "Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer SMS?": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert Team": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Find in hubspot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Alert SMS-1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert SMS-": {
+      "main": [
+        [
+          {
+            "node": "Stop-30 sec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summary1": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Intro SMS1": {
+      "main": [
+        [
+          {
+            "node": "90 sec wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Alert SMS-",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "Alert SMS-",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summary": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Alert Team1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Customer AI SMS4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code3": {
+      "main": [
+        [
+          {
+            "node": "Customer AI SMS3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet6": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet7": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer AI SMS4": {
+      "main": [
+        [
+          {
+            "node": "Summary1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert Team1": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "90 sec wait": {
+      "main": [
+        [
+          {
+            "node": "Customer SMS?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "90 sec wait1": {
+      "main": [
+        [
+          {
+            "node": "Customer AI SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cron": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stop-30 sec": {
+      "main": [
+        [
+          {
+            "node": "Code3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stop_30 sec": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet2": {
+      "main": [
+        []
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "3 h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet1": {
+      "main": [
+        [
+          {
+            "node": "3 h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Compose Intro SMS2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "24 h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Intro SMS2": {
+      "main": [
+        [
+          {
+            "node": "35 sec",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "35 sec": {
+      "main": [
+        [
+          {
+            "node": "Customer AI SMS1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3 h": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "Compose Intro SMS3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "48 h",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Intro SMS3": {
+      "main": [
+        [
+          {
+            "node": "35 sec1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "35 sec1": {
+      "main": [
+        [
+          {
+            "node": "Customer AI SMS2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "24 h": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "48 h": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Intro SMS4": {
+      "main": [
+        [
+          {
+            "node": "35 sec2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "35 sec2": {
+      "main": [
+        [
+          {
+            "node": "Customer AI SMS5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If4": {
+      "main": [
+        [
+          {
+            "node": "Compose Intro SMS4",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Update row in sheet1": {
+      "main": [
+        [
+          {
+            "node": "Working hour Logic2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet2": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet3": {
+      "main": [
+        [
+          {
+            "node": "If4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet4": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "80b5e3aa-f39e-427b-ab05-b318a1d3814f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c3d640dde72ecd6d24bd7ff59452d7a79d550a0797d26c0fe0d195c6a4526ae6"
+  },
+  "id": "c3hx3rnmYjTI0Trt",
+  "tags": []
+}
