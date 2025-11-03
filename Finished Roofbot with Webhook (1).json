@@ -1,0 +1,846 @@
+{
+  "name": "Finished Roofbot with Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "gpt-4"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -928,
+        688
+      ],
+      "id": "bcaebfa3-fb6c-4200-a721-bc7cd5c433bb",
+      "name": "OpenAI Chat Model"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId }}\n",
+        "contextWindowLength": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -1056,
+        656
+      ],
+      "id": "100c6208-7ccc-43b8-93aa-3ae3009e17bb",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the raw object from the Structured Output Parser\nconst raw = ($json && $json.output) ? $json.output : {};\n\n// ---------------- helpers ----------------\nconst cleanPhone = p => {\n  if (!p) return null;\n  const d = String(p).replace(/\\D/g, '');\n  if (d.length === 10) return `+1${d}`;\n  if (d.length === 11 && d.startsWith('1')) return `+${d}`;\n  return d ? `+${d}` : null;\n};\nconst cleanEmail = e => e && /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(e) ? e : null;\nconst cleanService = s => {\n  if (!s) return null;\n  const v = String(s).toLowerCase().trim();\n  return ['repair','replacement','inspection'].includes(v) ? v : null;\n};\nfunction pad2(n){ n=String(n); return n.length===1?'0'+n:n; }\nfunction to24h(h, ap){\n  h=parseInt(h,10); const pm=/^pm$/i.test(ap);\n  if(h===12 && !pm) return 0;\n  if(h!==12 && pm) return h+12;\n  return h;\n}\nfunction monthNum(s){\n  const m={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,sept:9,oct:10,nov:11,dec:12};\n  return m[String(s).toLowerCase()];\n}\nfunction looksLikeDateOrTime(s){\n  if(!s) return false;\n  s=String(s).toLowerCase();\n  const hasMonth   = /\\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\\b/.test(s);\n  const hasMDY     = /\\b\\d{1,2}\\/\\d{1,2}(\\/\\d{2,4})?\\b/.test(s) || /\\b\\d{4}-\\d{2}-\\d{2}\\b/.test(s);\n  const hasWkday   = /\\b(mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\\b/.test(s);\n  const hasTime    = /\\b\\d{1,2}(:\\d{2})?\\s*(am|pm)\\b/.test(s) || /\\bnoon|midnight\\b/.test(s);\n  const hasRelative= /\\b(today|tomorrow|tmrw|tonight)\\b/.test(s);\n  return (hasMonth || hasMDY || hasWkday || hasRelative) && (hasTime || hasRelative || hasMDY);\n}\n\n// NEW: clean & split \"home address and zip code\"\nfunction cleanAddressZip(input){\n  if (!input) return { raw: null, address: null, zip: null };\n  let s = String(input).trim().replace(/\\s+/g, ' ').replace(/^,|,$/g, '');\n  if (!s) return { raw: null, address: null, zip: null };\n  const m = s.match(/\\b\\d{5}(?:-\\d{4})?\\b/);\n  const zip = m ? m[0] : null;\n  let address = s;\n  if (zip) address = address.replace(zip, '').replace(/\\s{2,}/g, ' ').replace(/[, ]+$/,'').trim();\n  return { raw: s, address: address || null, zip };\n}\n\n// DST for America/Chicago using the APPOINTMENT date\nfunction isChicagoDSTByYMD(y, mo, d){\n  const mar1=new Date(Date.UTC(y,2,1));\n  const firstSunMar=1+((7-mar1.getUTCDay())%7);\n  const secondSunMar=firstSunMar+7;\n  const dstStart=new Date(Date.UTC(y,2,secondSunMar,8,0,0));\n  const nov1=new Date(Date.UTC(y,10,1));\n  const firstSunNov=1+((7-nov1.getUTCDay())%7);\n  const dstEnd=new Date(Date.UTC(y,10,firstSunNov,7,0,0));\n  const mid=new Date(Date.UTC(y,mo-1,d,12,0,0));\n  return mid>=dstStart && mid<dstEnd;\n}\nfunction chicagoOffsetForYMD(y,mo,d){ return isChicagoDSTByYMD(y,mo,d)?'-05:00':'-06:00'; }\nfunction stripMs(s){ return s ? s.replace(/\\.\\d{3}(Z|[+-]\\d{2}:\\d{2})$/,'$1') : s; }\n\n// FIXED: align end time to the same local clock as start's zone\nfunction alignEndToStartZone(startIso, endDate) {\n  const zoneMatch = String(startIso).match(/(Z|[+-]\\d{2}:\\d{2})$/);\n  const zone = zoneMatch ? zoneMatch[1] : 'Z';\n  const dUtc = new Date(endDate);\n\n  if (zone === 'Z') return stripMs(dUtc.toISOString());\n\n  const sign = zone[0] === '-' ? -1 : 1;\n  const [hh, mm] = zone.slice(1).split(':').map(n => parseInt(n, 10));\n  const offsetMs = sign * (hh * 60 + mm) * 60 * 1000;\n\n  const localMs = dUtc.getTime() + offsetMs;\n  const dLocal = new Date(localMs);\n\n  const yyyy = dLocal.getUTCFullYear();\n  const mo   = pad2(dLocal.getUTCMonth() + 1);\n  const da   = pad2(dLocal.getUTCDate());\n  const hh2  = pad2(dLocal.getUTCHours());\n  const mi2  = pad2(dLocal.getUTCMinutes());\n  const ss2  = pad2(dLocal.getUTCSeconds());\n\n  return `${yyyy}-${mo}-${da}T${hh2}:${mi2}:${ss2}${zone}`;\n}\n\n// Parse user text → ISO with correct Central offset for THAT date\nfunction cleanISO(dt){\n  if(!dt) return null;\n  dt=String(dt).trim();\n\n  // Already ISO with zone\n  if(/^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2})?(Z|[+-]\\d{2}:\\d{2})$/.test(dt)){\n    return dt;\n  }\n\n  // YYYY-MM-DD h:mm am/pm\n  let m=dt.match(/^(\\d{4})-(\\d{2})-(\\d{2})[ T](\\d{1,2}):(\\d{2})\\s*([ap]m)$/i);\n  if(m){\n    const [,y,mo,da,h,mi,ap]=m;\n    const off=chicagoOffsetForYMD(parseInt(y,10),parseInt(mo,10),parseInt(da,10));\n    return `${y}-${mo}-${da}T${pad2(to24h(parseInt(h,10),ap))}:${mi}:00${off}`;\n  }\n\n  // MM/DD/YYYY h(:mm)? (optional am/pm)\n  m=dt.match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})[ T](\\d{1,2})(?::(\\d{2}))?\\s*([ap]m)?$/i);\n  if(m){\n    const [,mm,dd,yyyy,h,mi,ap]=m;\n    const y=parseInt(yyyy,10), _m=parseInt(mm,10), da=parseInt(dd,10);\n    const off=chicagoOffsetForYMD(y,_m,da);\n    const hh=ap?pad2(to24h(parseInt(h,10),ap)):pad2(parseInt(h,10));\n    const mins = mi ? pad2(mi) : '00';\n    return `${y}-${pad2(_m)}-${pad2(da)}T${hh}:${mins}:00${off}`;\n  }\n\n  // MM/DD/YY h(:mm)? am/pm  (e.g., 10/11/25 3pm)\n  m=dt.match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{2})[ T](\\d{1,2})(?::(\\d{2}))?\\s*([ap]m)$/i);\n  if(m){\n    const [,mm,dd,yy,h,mi,ap]=m;\n    const yyyy = 2000 + parseInt(yy,10);\n    const _m=parseInt(mm,10), da=parseInt(dd,10);\n    const off=chicagoOffsetForYMD(yyyy,_m,da);\n    const hh=pad2(to24h(parseInt(h,10),ap));\n    const mins = mi ? pad2(mi) : '00';\n    return `${yyyy}-${pad2(_m)}-${pad2(da)}T${hh}:${mins}:00${off}`;\n  }\n\n  return null;\n}\n\nfunction formatPrettyDate(iso){\n  if(!iso) return null;\n  const date=new Date(iso);\n  return date.toLocaleString('en-US',{\n    month:'long', day:'numeric', year:'numeric',\n    hour:'numeric', minute:'2-digit', hour12:true\n  })+' CT';\n}\n\n// ---------------- main ----------------\nconst preferredText = (raw.preferredDateTimeText || raw.date || '').trim() || '';\nconst userTypedTime = looksLikeDateOrTime(preferredText);\n\n// normalize\nconst normalizedText = preferredText.replace(/\\s+at\\s+/i, ' ').trim();\n\nconst isoFromAgentRaw = (raw.preferredDateTimeISO && String(raw.preferredDateTimeISO).trim()) || null;\n\nlet isoStart = cleanISO(normalizedText) || isoFromAgentRaw || null;\nif (isoStart) isoStart = stripMs(isoStart);\n\n// >>> capture BEFORE coercion for debug\nconst isoStartBeforeCoerce = isoStart;\n\n// Coerce any UTC ('Z' or '+00:00') ISO to America/Chicago, preserving wall-clock time\nfunction coerceToCentral(iso){\n  const m = String(iso||'').match(/^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2})(?::(\\d{2}))?(Z|\\+00:00)$/);\n  if (!m) return iso;\n  const [, y, mo, d, hh, mi, ss ] = m;\n  const off = chicagoOffsetForYMD(+y, +mo, +d); // -05:00 (DST) or -06:00\n  const sec = ss ? ss : '00';\n  return `${y}-${mo}-${d}T${hh}:${mi}:${sec}${off}`;\n}\nif (isoStart && /(?:Z|\\+00:00)$/.test(isoStart)) {\n  isoStart = coerceToCentral(isoStart);\n}\n// <<< END coercion\n\nconst duration = 60; // force 1-hour\n\n// Compute end aligned to same zone\nlet windowEndISO = null;\nif (isoStart) {\n  const end = new Date(new Date(isoStart).getTime() + duration * 60000);\n  windowEndISO = alignEndToStartZone(isoStart, end);\n}\n\n// NEW: fixed 1-hour appointment fields\nconst appointmentStartISO = isoStart || null;\nconst appointmentEndISO = windowEndISO || null;\n\nconst addrParts = cleanAddressZip((raw[\"home address and zip code\"] || '').trim());\n\nconst readyToSchedule =\n  !!isoStart &&\n  !!cleanService(raw.service || '') &&\n  (!!cleanPhone(raw.phone || '') || !!cleanEmail(raw.email || '')) &&\n  !!(addrParts.address || addrParts.raw);\n\nconst payload = {\n  fullName: (raw.name || '').trim() || null,\n  userPhone: cleanPhone(raw.phone || ''),\n  email: cleanEmail(raw.email || ''),\n  serviceNeeded: cleanService(raw.service || ''),\n  \"home address and zip code\": addrParts.raw,\n  homeAddress: addrParts.address,\n  zipCode: addrParts.zip,\n\n  date: raw.date || null,\n  preferredDateTimeText: preferredText || null,\n  preferredDateTimeISO: isoStart || null,\n  durationMinutes: duration,\n  windowEndISO: windowEndISO || null,\n  preferredDateTimePretty: isoStart ? formatPrettyDate(isoStart) : null,\n  readyToSchedule,\n\n  appointmentStartISO,\n  appointmentEndISO,\n\n  // >>> ADDED: debug breadcrumb so you can verify the coercion during your demo\n  _debug: {\n    isoFromAgentRaw,\n    isoStartBeforeCoerce,\n    isoStartFinal: isoStart\n  }\n};\n\npayload.appointmentStartUTC = appointmentStartISO ? new Date(appointmentStartISO).toISOString() : null;\npayload.appointmentEndUTC = appointmentEndISO ? new Date(appointmentEndISO).toISOString() : null;\n\nreturn [{ json: payload }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -752,
+        128
+      ],
+      "id": "f7191cee-a798-47f9-bb12-b53c720336d6",
+      "name": "Validate & Normalize",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0692a7c4-2082-4658-bd14-0c6e4659be0f",
+              "name": "fullName",
+              "value": "={{ $json.fullName }}",
+              "type": "string"
+            },
+            {
+              "id": "e7efec66-4716-4627-9d9e-43c32ffba471",
+              "name": "userPhone",
+              "value": "={{ $json.userPhone }}",
+              "type": "string"
+            },
+            {
+              "id": "db483d62-fd96-4e50-9041-b80f69194dd6",
+              "name": "email",
+              "value": "={{ $json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "9556f750-1cbe-492f-9da7-b5cf68128fbe",
+              "name": "serviceNeeded",
+              "value": "={{ $json.serviceNeeded }}",
+              "type": "string"
+            },
+            {
+              "id": "fc61ed07-6e62-425f-a1dd-5e5e5f54229b",
+              "name": "preferredDateTimeISO",
+              "value": "={{ $json.preferredDateTimeISO }}",
+              "type": "string"
+            },
+            {
+              "id": "fb28d262-773d-4842-a72e-ea4301eba85f",
+              "name": "preferredDateTimePretty",
+              "value": "={{ $json.preferredDateTimePretty }}",
+              "type": "string"
+            },
+            {
+              "id": "c65e8441-d59a-4da6-911a-7d630bc02d7c",
+              "name": "sessionId",
+              "value": "={{ \n  $json.sessionId \n  || $json.body?.sessionId \n  || $json.userPhone \n  || $json.email \n  || $json.fromPhone \n  || \"session-\" + Date.now() \n}}\n",
+              "type": "string"
+            },
+            {
+              "id": "178779ed-d60d-4aab-ae89-0d72c29784cf",
+              "name": "windowEndISO",
+              "value": "={{$json.windowEndISO}}",
+              "type": "string"
+            },
+            {
+              "id": "df62aa66-faa8-4714-820d-f08cd294fb07",
+              "name": "durationMinutes",
+              "value": "={{$json.durationMinutes}}",
+              "type": "string"
+            },
+            {
+              "id": "7266aa5e-c69e-465d-9ff7-687f8dc6124a",
+              "name": "home address and zip code",
+              "value": "={{ $json[\"home address and zip code\"] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -608,
+        128
+      ],
+      "id": "2e1edd18-2312-4ead-ae72-60834a647bf4",
+      "name": "Store user data",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message || $json.body?.message || $json.chatInput }}\n",
+        "options": {
+          "systemMessage": "You are a friendly intake assistant for a ROOFING company.\n\nGoal: naturally collect these, one at a time:\n\nFull name\nPhone number\nEmail\nRoofing service needed (repair, replacement, inspection)\nHome address and zip code\nPreferred appointment date/time\n\nRules:\nSpeak in normal, concise language. No JSON, no code blocks, no brackets.\nAsk for ONE missing detail per turn.\nIf the user gives multiple details at once, thank them, save them, and ask for the next missing detail.\nIf something looks invalid (email/phone/time), politely ask to confirm.\nKeep replies short (1–2 sentences).\nNever mention parsing, schemas, or internal data.\n\nAfter all details are collected, confirm everything briefly and say we’ll send a confirmation email and a text message regarding their appointment. Then tell the customer: “If all of this looks correct, type YES to confirm and book your appointment. If you’d like to change anything, just let me know.” Only book if the customer actually types YES.\nWhen asking for the date and time make sure they format it like this example: 5/15/27 4pm.\nNever propose or display a date/time unless the customer said it.\nNever use example placeholders like “e.g., Aug 12 at 3pm” in replies to the customer.\nOnly restate exactly what the customer provided. If unclear or invalid, ask them to confirm.\nMake sure the user formats the date like this example: 10/11/25 3pm.\n\nSpecial behavior for scheduling:\nIf input.json.replyTemplate is present, output it verbatim as the reply and do not continue with normal intake.\nIf input.json.expecting === \"dateTime\", after replying, only wait for the customer to provide a new appointment date and time. Do not re-ask for name, phone, email, service, or address."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        -1040,
+        416
+      ],
+      "id": "5ac3bb37-2d9d-4308-9992-6e2a3c3f339e",
+      "name": "AI Agent (conversation)",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"name\":   { \"type\": \"string\" },\n    \"phone\":  { \"type\": \"string\" },\n    \"email\":  { \"type\": \"string\" },\n    \"service\":{ \"type\": \"string\", \"enum\": [\"repair\",\"replacement\",\"inspection\",\"\"] },\n    \"home address and zip code\": { \"type\": \"string\" },    \n    \"date\":   { \"type\": \"string\" },\n    \"preferredDateTimeISO\":  { \"type\": \"string\" },\n    \"durationMinutes\":       { \"type\": \"integer\" },\n    \"windowEndISO\":          { \"type\": \"string\" }\n  },\n  \"required\": []\n}\n",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -848,
+        288
+      ],
+      "id": "c8fa5592-cff1-4762-a09b-d4cb85a51e33",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message || $json.body?.message || $json.chatInput }}\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an internal-only data extraction agent for a ROOFING company.\nYou do not communicate with the customer.\nYou do not generate any conversational or explanatory text.\n\nYour only task: read the conversation history (memory) and the latest user message, and output EXACTLY this JSON object and nothing else:\n\n{\n  \"name\": \"\",\n  \"phone\": \"\",\n  \"email\": \"\",\n  \"service\": \"\",\n  \"home address and zip code\": \"\",\n  \"date\": \"\",\n  \"preferredDateTimeISO\": \"\",\n  \"durationMinutes\": 60,\n  \"windowEndISO\": \"\"\n}\n\nRules:\n- Use the latest user message to UPDATE fields that the user provided *in that message*.\n- For fields **not present** in the latest message, **KEEP the most recent known values from the conversation** (memory). Do NOT blank them out.\n- \"service\" must be one of: \"repair\", \"replacement\", \"inspection\", or \"\".\n- If the latest message provides a new date/time, update BOTH \"date\" and \"preferredDateTimeISO\".\n- If the latest message does NOT include a date/time, carry forward the previously known \"date\" and \"preferredDateTimeISO\" exactly as-is (do not output empty strings).\n- Do not infer new data that was never stated by the user.\n- No extra words, no code blocks, no formatting — output the JSON object only.\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -1040,
+        128
+      ],
+      "id": "6c40b7cb-7df7-44ce-8bfd-de29955d2aa5",
+      "name": "AI Agent (Extractor)"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "alishwashakeel92@gmail.com",
+          "mode": "list",
+          "cachedResultName": "alishwashakeel92@gmail.com"
+        },
+        "limit": 1,
+        "timeMin": "={{ $json.preferredDateTimeISO }}",
+        "timeMax": "={{ $json.windowEndISO }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -304,
+        128
+      ],
+      "id": "f08349cd-0c36-48c0-8d3f-b9b3a63969d6",
+      "name": "Get many events",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ojuKeAb5ngq3IC9m",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "35ec4cb9-163e-4653-b58e-eb818da82532",
+              "leftValue": "={{ $json.available }}",
+              "rightValue": "={{ true }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        32,
+        128
+      ],
+      "id": "a3edeff7-9f96-457c-a5c3-2b209f72e8d7",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "=",
+          "mode": "id"
+        },
+        "start": "={{ $('Validate & Normalize').item.json.appointmentStartISO }}",
+        "end": "={{ $('Validate & Normalize').item.json.appointmentEndISO }}",
+        "additionalFields": {
+          "attendees": [
+            "={{ $('Store user data').item.json.email }}"
+          ],
+          "description": "={{ $('Store user data').item.json.serviceNeeded }}\n{{ $('Store user data').item.json.fullName }}\n{{ $('Store user data').item.json.userPhone }}\n{{ $('Store user data').item.json.email }}\n{{ $('Store user data').item.json[\"home address and zip code\"] }}\n{{ $('Store user data').item.json.preferredDateTimePretty }}",
+          "summary": "={{ $('Store user data').item.json.serviceNeeded }} {{ $('Store user data').item.json.fullName }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        256,
+        96
+      ],
+      "id": "6c7a9fa7-ba2e-4d5f-a1b9-5cd8f4c50375",
+      "name": "Create an event",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ojuKeAb5ngq3IC9m",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Replace \"Ensure SessionId\" with the exact name of your node right after the Webhook.\n// If you don't have that Code node, use your Normalize Set node's name instead.\nlet incoming = {};\ntry {\n  incoming = ($('Ensure SessionId').item?.json) || {};\n} catch {}\nconst msg = String(\n  incoming.chatInput ??\n  incoming.message ??\n  incoming.body?.message ??\n  $json.chatInput ?? $json.message ?? $json.body?.message ?? ''\n).trim();\n\n// MORE FORGIVING YES CHECK\nconst saidYES =\n  /^\\s*y(?:es)?\\s*[.!\"]?\\s*$/i.test(msg) ||\n  /\\b(confirm|book|go ahead|schedule it)\\b/i.test(msg);\n\nconst stored = ($('Store user data').item?.json) ?? {};\nconst norm   = ($('Validate & Normalize').item?.json) ?? {};\n\nconst hasContact = Boolean(stored.userPhone || stored.email || norm.userPhone || norm.email);\nconst hasService = Boolean(stored.serviceNeeded || norm.serviceNeeded);\n\nconst startISO =\n  norm.appointmentStartISO || stored.appointmentStartISO ||\n  norm.preferredDateTimeISO || stored.preferredDateTimeISO || null;\n\nconst endISO =\n  norm.appointmentEndISO || stored.appointmentEndISO ||\n  norm.windowEndISO || stored.windowEndISO || null;\n\nconst ready = hasContact && hasService && Boolean(startISO) && Boolean(endISO);\n\nif (!ready || !saidYES || stored.booked === true) return [];\n\n// ADDED: _debug snippet so you can see what body guard received\nreturn [{\n  json: {\n    ...stored, ...norm,\n    appointmentStartISO: startISO,\n    appointmentEndISO: endISO,\n    preferredDateTimeISO: startISO,\n    windowEndISO: endISO,\n    booked: true,\n    _debug: {\n      lastMessage: msg,\n      saidYES,\n      hasContact,\n      hasService,\n      startISO,\n      endISO,\n      ready\n    }\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        128
+      ],
+      "id": "d157e2cc-13ac-40de-8adb-65d57ba7d67f",
+      "name": "body guard"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input 0: Google Calendar \"Get Many\" (Check availability)\n// Input 1: Validate & Normalize (has preferredDateTimeISO/windowEndISO)\n\nconst calItems = $input.all(0);\n\n// If calendar returned nothing ([]) or a single empty object ([{}]),\n// treat the slot as free immediately — no need to read ISO times.\nif (calItems.length === 0 ||\n    (calItems.length === 1 && Object.keys(calItems[0].json || {}).length === 0)) {\n  return [{ json: { available: true, reason: \"no_items_or_empty\" } }];\n}\n\n// Otherwise, we need the requested start/end to check overlap.\nconst payloadItems = $input.all(1);\nconst payload = (payloadItems[0]?.json) || {};\nconst startISO = payload.preferredDateTimeISO || null;\nconst endISO   = payload.windowEndISO || null;\n\nif (!startISO || !endISO) {\n  return [{\n    json: {\n      available: false,\n      reason: \"missing_time_inputs\",\n      got: { preferredDateTimeISO: startISO || null, windowEndISO: endISO || null }\n    }\n  }];\n}\n\n// Compute requested window\nconst reqStart = new Date(startISO).getTime();\nconst reqEnd   = new Date(endISO).getTime();\n\n// Count only true blockers (skip cancelled/transparent; require real overlap)\nlet blockers = 0;\nlet sample = [];\n\nfor (const it of calItems) {\n  const ev = it.json || {};\n\n  const status = (ev.status || ev.eventStatus || \"\").toLowerCase();\n  if (status === \"cancelled\") continue;\n\n  const transparency = (ev.transparency || \"\").toLowerCase();\n  if (transparency === \"transparent\") continue;\n\n  const evStartISO = ev.start?.dateTime || ev.start?.date || ev.start;\n  const evEndISO   = ev.end?.dateTime   || ev.end?.date   || ev.end;\n  if (!evStartISO || !evEndISO) continue;\n\n  const evStart = new Date(evStartISO).getTime();\n  const evEnd   = new Date(evEndISO).getTime();\n  if (!isFinite(evStart) || !isFinite(evEnd)) continue;\n\n  const overlaps = (evStart < reqEnd) && (evEnd > reqStart);\n  if (overlaps) {\n    blockers++;\n    if (sample.length < 2) sample.push({ summary: ev.summary, evStartISO, evEndISO, transparency, status });\n  }\n}\n\nreturn [{\n  json: {\n    available: blockers === 0,\n    blockers,\n    debug: { itemsSeen: calItems.length, sample }\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -128,
+        128
+      ],
+      "id": "d00ca8cb-030f-402a-8405-86c6ef71d711",
+      "name": "Availability Flag"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6b973f67-ad65-4707-81fb-174ebb8813cc",
+              "name": "expecting",
+              "value": "dateTime",
+              "type": "string"
+            },
+            {
+              "id": "81b50c80-a72e-4d65-9add-4ec36e9d33f9",
+              "name": "preferredDateTimeText",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "1d514435-3a58-42d4-867f-07086216e735",
+              "name": "preferredDateTimeISO",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "6e28cabc-28a4-47a4-8842-f879403bc0a1",
+              "name": "windowEndISO",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "93167d12-f603-40fa-981d-3b0a3af2ba96",
+              "name": "chatInput",
+              "value": "\"Looks like that slot is already taken. Can you give me another date and time that works best for you?\"",
+              "type": "string"
+            },
+            {
+              "id": "fd0d7fc4-4492-4ba3-9c17-6bbb99608815",
+              "name": "replyTemplate",
+              "value": "Looks like that slot is already taken. Can you give me another date and time that works best for you? ",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        240
+      ],
+      "id": "675014fc-8cef-43e3-9d0a-b050c612d8c2",
+      "name": "Edit Fields",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "from": "+15005550006",
+        "message": "={{ \"Hi \" \n  + ($(\"Store user data\").item.json.fullName || \"there\")\n  + \", your \" \n  + ($(\"Store user data\").item.json.serviceNeeded || \"roofing\")\n  + \" appointment is set for \" \n  + ($(\"Validate & Normalize\").item.json.preferredDateTimePretty || \"the scheduled time\")\n  + \". Reply STOP to opt out.\" }}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        464,
+        96
+      ],
+      "id": "aff97c1a-c595-4132-8b22-1397b831b5a3",
+      "name": "Send an SMS/MMS/WhatsApp message",
+      "alwaysOutputData": true,
+      "credentials": {
+        "twilioApi": {
+          "id": "cz59rzgPlh5YoYV0",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "sNrgFKGW6X68JQsc",
+          "mode": "list",
+          "cachedResultName": "RoofBot – Reminders/follow ups"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "fullName": "={{$('Store user data').item.json.fullName}}",
+            "userPhone": "={{$('Store user data').item.json.userPhone || $json.userPhone || $json.userphone}}",
+            "serviceNeeded": "={{$('Store user data').item.json.serviceNeeded}}",
+            "preferredDateTimePretty": "={{$('Validate & Normalize').item.json.preferredDateTimePretty}}",
+            "appointmentStartUTC": "={{$('Validate & Normalize').item.json.appointmentStartUTC}}",
+            "reminderAtUTC": "={{ new Date(new Date($('Validate & Normalize').item.json.appointmentStartUTC).getTime() - 24*60*60*1000).toISOString() }}\n\n",
+            "noShowAtUTC": "={{ new Date(new Date($('Validate & Normalize').item.json.appointmentStartUTC).getTime() + 2*60*60*1000).toISOString() }}\n",
+            "eventId": "={{ $('Create an event').item.json.id || $json.id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "fullName",
+              "displayName": "fullName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "userPhone",
+              "displayName": "userPhone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "serviceNeeded",
+              "displayName": "serviceNeeded",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "preferredDateTimePretty",
+              "displayName": "preferredDateTimePretty",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "appointmentStartUTC",
+              "displayName": "appointmentStartUTC",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "reminderAtUTC",
+              "displayName": "reminderAtUTC",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "noShowAtUTC",
+              "displayName": "noShowAtUTC",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "eventId",
+              "displayName": "eventId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        672,
+        96
+      ],
+      "id": "aa5ab9c3-b5b7-441d-bcce-7b7d1473242d",
+      "name": "Execute Workflow"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d98debeb-34cf-4d8b-b440-3055cdae54aa",
+              "name": "sessionId",
+              "value": "={{ \n  $json.sessionId\n  || $json.body?.sessionId\n  || $json.headers?.['x-session-id']\n  || $json.cookies?.sid\n  || $json.query?.sid\n  || null \n}}\n",
+              "type": "string"
+            },
+            {
+              "id": "dd7a2411-07d3-42fd-a01d-ee75ac2f7406",
+              "name": "chatInput",
+              "value": "={{$json.message || $json.body?.message || \"\"}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1440,
+        416
+      ],
+      "id": "6d498137-6a8f-49a8-8a50-f626072b9512",
+      "name": "Normalize"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.output }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -720,
+        416
+      ],
+      "id": "ef998e2c-fca5-4dce-a051-550666f808ba",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "Roofbot",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1856,
+        400
+      ],
+      "id": "60229700-8b0e-4112-b7a3-4854a3423f58",
+      "name": "Webhook",
+      "webhookId": "e06da203-0a8b-41d0-aa2f-60c53d8531ea"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "let sid = $json.sessionId;\nif (!sid) {\n  // generate a new sessionId if none provided\n  const rand = Math.random().toString(36).slice(2, 10);\n  sid = `sess-${Date.now()}-${rand}`;\n}\n\n// return one object per item\nreturn {\n  json: {\n    ...$json,\n    sessionId: sid\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1280,
+        416
+      ],
+      "id": "5ff390ed-99a8-4e90-8cdf-fe8512524989",
+      "name": "Ensure SessionId"
+    },
+    {
+      "parameters": {
+        "tableId": "Roofbot"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -1664,
+        400
+      ],
+      "id": "f3deebe2-4036-4fc7-90a4-13583c7cf75c",
+      "name": "Create a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dke6tRB4rSTqcaXb",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent (conversation)",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "AI Agent (Extractor)",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent (conversation)",
+            "type": "ai_memory",
+            "index": 0
+          },
+          {
+            "node": "AI Agent (Extractor)",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Normalize": {
+      "main": [
+        [
+          {
+            "node": "Store user data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (conversation)": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store user data": {
+      "main": [
+        [
+          {
+            "node": "body guard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent (Extractor)",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (Extractor)": {
+      "main": [
+        [
+          {
+            "node": "Validate & Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many events": {
+      "main": [
+        [
+          {
+            "node": "Availability Flag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Create an event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "body guard": {
+      "main": [
+        [
+          {
+            "node": "Get many events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Availability Flag": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent (conversation)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event": {
+      "main": [
+        [
+          {
+            "node": "Send an SMS/MMS/WhatsApp message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an SMS/MMS/WhatsApp message": {
+      "main": [
+        [
+          {
+            "node": "Execute Workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize": {
+      "main": [
+        [
+          {
+            "node": "Ensure SessionId",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Create a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure SessionId": {
+      "main": [
+        [
+          {
+            "node": "AI Agent (conversation)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "AI Agent (Extractor)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row": {
+      "main": [
+        [
+          {
+            "node": "Normalize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "79cb13a6-e290-4af6-945a-cc267899d1f0",
+  "meta": {
+    "instanceId": "b20eeed271fb8c89cb145ca05a3340f2a06534d0267922a9ace20b9e714c255f"
+  },
+  "id": "YIBfItOiPil9ksCl",
+  "tags": []
+}
