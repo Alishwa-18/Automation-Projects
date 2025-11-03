@@ -1,0 +1,544 @@
+{
+  "name": "[2.7] Task Creation via Telegram Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "4a0eb33d-b326-4976-8b3f-368dec5cae20",
+              "leftValue": "={{ $json.message.voice }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -512,
+        -512
+      ],
+      "id": "8dfac13c-f23f-4d27-a321-28b188805825",
+      "name": "Check message type"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -736,
+        -512
+      ],
+      "id": "aca8ed83-65a6-4fd5-989f-713a4c5e61fd",
+      "name": "Telegram Trigger (Recieve message)",
+      "webhookId": "fe77a4f2-a2b0-441d-b3b3-4dacd3e7ec0f",
+      "credentials": {
+        "telegramApi": {
+          "id": "rwXo3DnQg4JfETW0",
+          "name": "GA_TELEGRAM_BOT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -288,
+        -448
+      ],
+      "id": "9b67c8c7-255d-46d8-aaf2-2a3c5b99d859",
+      "name": "Get Voice File",
+      "webhookId": "642aa310-e7a4-4e69-9383-776e51d6981f",
+      "credentials": {
+        "telegramApi": {
+          "id": "rwXo3DnQg4JfETW0",
+          "name": "GA_TELEGRAM_BOT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger (Recieve message)').item.json.message.chat.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        512,
+        -288
+      ],
+      "id": "92f1e3d9-ebca-4a46-adbc-b1275e91125a",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-5-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        384,
+        -288
+      ],
+      "id": "3b996dfb-355b-47a9-b837-a9e66ed5c7ff",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "6YNU7KtI8TepvDpi",
+          "name": "Developer (Use This one)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}\n",
+        "options": {
+          "systemMessage": "=You are a helpful task management assistant for Telegram. You help users manage their Notion tasks through natural conversation.\n\n## Available Tools\n\nYou have access to these tools to interact with Notion:\n\n- **create_task**: Creates one new task\n- **edit_task**: Updates an existing task  \n- **search_task**: Finds tasks based on criteria\n- **status_task**: Checks task status\n- **batch_task**: Creates multiple tasks at once\n\n## CRITICAL: Only Call Tools When You Have Complete Information\n\n**Before calling any tool, you MUST have all required information.**\n\n### For create_task - Required Fields:\n- ✅ title (required)\n- ✅ description (required - ask if not provided)\n- ⚠️ due_date (optional, but ask if task seems time-sensitive)\n- ⚠️ priority (optional, default to \"Medium\")\n- ⚠️ project (optional)\n\n### For edit_task - Required Fields:\n- ✅ title (required - to find the task)\n- ✅ at least one field to update\n\n### For search_task - Required Fields:\n- ✅ search criteria (keywords, date, or priority)\n\n### For status_task - Required Fields:\n- ✅ title (required - to identify the task)\n\n### For batch_task - Required Fields:\n- ✅ Array of tasks, each with at least a title\n\n## Clarification Flow\n\nWhen information is missing, follow this pattern:\n\n**User:** \"Create a task\"\n**You:** \"Sure! What should this task be about?\"\n**User:** \"Buy groceries\"\n**You:** \"Got it! Could you describe this task briefly? For example, what groceries do you need?\"\n**User:** \"Milk, eggs, bread\"\n**You:** \"Perfect! When should this be completed?\"\n**User:** \"Tomorrow\"\n**You:** [NOW call create_task with all the info]\n\n## How to Call Tools\n\nStructure data like this when calling tools:\n\n**create_task:**\n```\n{\n  \"tasks\": [{\n    \"title\": \"Buy groceries\",\n    \"description\": \"Get milk, eggs, bread\",\n    \"due_date\": \"2025-10-16\",\n    \"priority\": \"Medium\",\n    \"project\": null\n  }]\n}\n```\n\n**batch_task:**\n```\n{\n  \"tasks\": [\n    {\"title\": \"Task 1\", \"description\": \"...\", \"due_date\": \"2025-10-16\", \"priority\": \"High\", \"project\": \"Work\"},\n    {\"title\": \"Task 2\", \"description\": \"...\", \"due_date\": \"2025-10-17\", \"priority\": \"Low\", \"project\": null}\n  ]\n}\n```\n\n**edit_task:**\n```\n{\n  \"task\": {\n    \"title\": \"Buy groceries\",\n    \"priority\": \"High\"\n  }\n}\n```\n\n**search_task:**\n```\n{\n  \"task\": {\n    \"title\": \"groceries\"\n  }\n}\n```\n\n**status_task:**\n```\n{\n  \"task\": {\n    \"title\": \"Buy groceries\"\n  }\n}\n```\n\n## Date Parsing\n\nAlways convert natural language to YYYY-MM-DD:\n- \"tomorrow\" → 2025-10-16 (today is 2025-10-15)\n- \"next Friday\" → calculate next Friday\n- \"in 3 days\" → 2025-10-18\n- \"end of month\" → 2025-10-31\n\n## Priority Detection\n\n- \"urgent\", \"asap\", \"important\", \"critical\", \"high priority\" → \"High\"\n- \"low priority\", \"whenever\", \"no rush\", \"when you can\" → \"Low\"\n- Default → \"Medium\"\n\n## Response Handling\n\nWhen a tool returns a result, it will contain a \"text\" field with a formatted message. Simply relay that message to the user naturally.\n\nExample:\n- Tool returns: `{\"text\": \"✅ Task created!\\nTitle: Buy groceries\\n...\"}`\n- You say: The exact text from the tool response\n\n## Memory & Context\n\nYou have conversation memory. Use it to:\n- Remember task details mentioned earlier in the conversation\n- Build up information across multiple messages\n- Reference previous tasks or requests\n\n## Examples\n\n**Example 1: Complete Information**\nUser: \"Create a task to buy groceries tomorrow, it's urgent\"\nYou: [Extract all info, call create_task immediately]\n\n**Example 2: Missing Information**\nUser: \"Create a task to call someone\"\nYou: \"Sure! Who should you call?\"\nUser: \"John\"\nYou: \"Got it! Could you add a brief description? For example, what's the call about?\"\nUser: \"Discuss the project timeline\"\nYou: \"Perfect! When should you call John?\"\nUser: \"Tomorrow afternoon\"\nYou: [NOW call create_task with: title=\"Call John\", description=\"Discuss the project timeline\", due_date=\"2025-10-16\", priority=\"Medium\"]\n\n**Example 3: Edit Task**\nUser: \"Mark the groceries task as done\"\nYou: [Call edit_task with title=\"groceries\", status=\"Done\"]\n\n**Example 4: Batch Creation**\nUser: \"Create 3 tasks: call mom, pay bills, book dentist\"\nYou: [You have titles but no descriptions]\nYou: \"I can create these 3 tasks. Would you like to add descriptions for any of them, or should I create them with just the titles?\"\nUser: \"Just create them\"\nYou: [Call batch_task with 3 tasks, using titles as descriptions]\n\n**Example 5: Search**\nUser: \"Show me today's tasks\"\nYou: [Call search_task with title=\"today\", due_date=\"2025-10-15\"]\n\n## Important Rules\n\n1. **Never invent information** - if you don't know, ask\n2. **Ask questions one at a time** - don't overwhelm the user\n3. **Use memory** - remember what the user said earlier in the conversation\n4. **Be conversational** - don't mention tools, JSON, or technical details\n5. **Only call tools when ready** - collect all required info first\n6. **Relay tool responses** - when a tool returns text, share it with the user\n\nYour goal is to make task management feel natural and effortless!"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        704,
+        -512
+      ],
+      "id": "379ea708-39ff-48a9-a382-c78912f605d3",
+      "name": "Understand message intent"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -736,
+        -192
+      ],
+      "id": "01577bf5-d130-4157-a933-9f4c60632af9",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "chatId": "Needs to be added",
+        "text": "={{ $json.execution.error.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -512,
+        -192
+      ],
+      "id": "207569ed-7f1c-467a-ad33-ad832d9dfe68",
+      "name": "Send a text message3",
+      "webhookId": "74e5db89-86c8-4cbb-902b-180b27dfccb7",
+      "credentials": {
+        "telegramApi": {
+          "id": "EFWPdkrPgU3pJkvs",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "translate",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -64,
+        -448
+      ],
+      "id": "536b35ff-a314-4c9c-b060-0dd9fbc3705c",
+      "name": "Translate voice",
+      "credentials": {
+        "openAiApi": {
+          "id": "6YNU7KtI8TepvDpi",
+          "name": "Developer (Use This one)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to create a new task when the user wants to create a new task.\nInput must include tasks array with one or more objects containing fields:\ntitle, description, due_date, priority, and project.",
+        "workflowId": {
+          "__rl": true,
+          "value": "SRhOef2s8rZGOja7",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/SRhOef2s8rZGOja7",
+          "cachedResultName": "Development Team — create_task"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {}
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        -288
+      ],
+      "id": "ee8b808c-ce36-4e78-9102-b6e4b712346a",
+      "name": "Call 'create_task'"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to find existing tasks in Notion when the user asks to “show”, “find”, or “list” tasks.\nInput should include a tasks array with filters such as keywords in title or description, or a due date/time filter like “today” or “this week”.\nThis returns a list of matching tasks.",
+        "workflowId": {
+          "__rl": true,
+          "value": "ScfOfmMEvuuIf23N",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ScfOfmMEvuuIf23N",
+          "cachedResultName": "Development Team — search_task"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {}
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        768,
+        -288
+      ],
+      "id": "15c7aa0f-d1f0-4e2b-8cf0-147b1043d6d8",
+      "name": "Call 'search_task'"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool when the user asks about the current progress or completion status of a task, such as “is task X done?” or “what’s the status of task Y?”.\nInput should include the task title in tasks[0].title.\nOutput will show the status value (e.g., “Done” or “In progress”).",
+        "workflowId": {
+          "__rl": true,
+          "value": "wpkh4vAzDSq2IUAj",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/wpkh4vAzDSq2IUAj",
+          "cachedResultName": "Development Team — status_task"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {}
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        -288
+      ],
+      "id": "c911282e-5bcd-4516-b867-a5bcaf62ac7f",
+      "name": "Call 'status_task'"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool when the user mentions multiple tasks in one message, such as “create 3 tasks” or gives a bulleted list.\nInput should include multiple task objects in tasks, each with its own title, and optional description, due_date, priority, and project.",
+        "workflowId": {
+          "__rl": true,
+          "value": "6j2MkEQR1Qcnlz5X",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/6j2MkEQR1Qcnlz5X",
+          "cachedResultName": "Development Team — batch_task"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {}
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1024,
+        -288
+      ],
+      "id": "85c23226-4759-4ac6-b28e-dc396837f33f",
+      "name": "Call 'batch_task'"
+    },
+    {
+      "parameters": {
+        "description": "Use this tool to update or edit details of an existing Notion task.\nInput must include tasks array with at least the title of the task to update, plus the fields that need to change (e.g. due_date, priority, description, or project).\nDo not call this if the user hasn’t clearly said which task to edit — ask for clarification first.",
+        "workflowId": {
+          "__rl": true,
+          "value": "yEe3m6eELgDtGHXE",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/yEe3m6eELgDtGHXE",
+          "cachedResultName": "Development Team — edit_task"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1152,
+        -288
+      ],
+      "id": "5b417932-4b8c-4b39-a2dc-a8c8398458d4",
+      "name": "Call 'edit_task'"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "80a334b6-1bb8-4e78-94b1-878e3da4234d",
+              "name": "text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "7b0cc702-c8e6-4467-bf1f-f9ec337a1ffb",
+              "name": "text",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        -512
+      ],
+      "id": "000841d8-33d4-45aa-8506-df18e84742e1",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger (Recieve message)').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1296,
+        -512
+      ],
+      "id": "b5b5fd0f-afa7-4d16-84db-505897810594",
+      "name": "Send a text message",
+      "webhookId": "b161cfad-592a-4c27-9163-7529a118fe4e",
+      "credentials": {
+        "telegramApi": {
+          "id": "rwXo3DnQg4JfETW0",
+          "name": "GA_TELEGRAM_BOT"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Check message type": {
+      "main": [
+        [
+          {
+            "node": "Get Voice File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger (Recieve message)": {
+      "main": [
+        [
+          {
+            "node": "Check message type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Voice File": {
+      "main": [
+        [
+          {
+            "node": "Translate voice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Understand message intent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Understand message intent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Understand message intent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send a text message3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Translate voice": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'create_task'": {
+      "ai_tool": [
+        [
+          {
+            "node": "Understand message intent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'search_task'": {
+      "ai_tool": [
+        [
+          {
+            "node": "Understand message intent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'status_task'": {
+      "ai_tool": [
+        [
+          {
+            "node": "Understand message intent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'batch_task'": {
+      "ai_tool": [
+        [
+          {
+            "node": "Understand message intent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'edit_task'": {
+      "ai_tool": [
+        [
+          {
+            "node": "Understand message intent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Understand message intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2dc0a2d2-8942-4f29-820e-68df2d95bdf5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "839247d7a7a8ed99c1e0d4bb79ab33ace1b57ab029218fcfc4e287b270a1e678"
+  },
+  "id": "77lwvxKrvUGcBi9h",
+  "tags": []
+}
