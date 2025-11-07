@@ -1,0 +1,1018 @@
+{
+  "name": "Meeting cancelled/rescheduled",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -240,
+        -112
+      ],
+      "id": "a519beda-3ea9-4677-948a-0feae8bd0a7c",
+      "name": "Schedule Trigger2"
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "filters": {
+          "custom": "=start/dateTime ge '{{ new Date().toISOString() }}' and end/dateTime le '{{ (new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000)).toISOString() }}'"
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        -48,
+        -112
+      ],
+      "id": "cd21d697-1e3a-4835-bcf9-d275d19b1fdc",
+      "name": "Fetch Upcoming Meetings (7 Days)2",
+      "webhookId": "fb4e3b6b-7590-4adf-b795-c22fc5d6d8a0",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "FkMIJLgqn6wlzPfL",
+          "name": "Paul Point Corp Outlook OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n  const e = item.json;\n  return {\n    json: {\n      meetingId: e.id,\n      subject: e.subject,\n      startTime: e.start?.dateTime || null,\n      endTime: e.end?.dateTime || null,\n      isCancelled: e.isCancelled || false,\n      webLink: e.webLink || null,\n      organizer: e.organizer?.emailAddress?.name || null,\n      organizerEmail: e.organizer?.emailAddress?.address || null,\n      attendees: (e.attendees || []).map(a => ({\n        name: a.emailAddress?.name,\n        email: a.emailAddress?.address\n      })),\n      rawOutlook: e\n    }\n  };\n});\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -112
+      ],
+      "id": "b09d645c-5a82-4e5a-bb44-89b1b14baa00",
+      "name": "Normalize Outlook Events"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        384,
+        -112
+      ],
+      "id": "646acda7-1622-4555-8a3a-ae0599b60edc",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "text": "={{ $json.meetingId }}",
+        "limit": 1,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        656,
+        -96
+      ],
+      "id": "7fb2af4f-4f12-4da3-b0df-60353d03056e",
+      "name": "Search a page",
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "cancelled",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "81685dfa-1ccc-4ce0-866d-ee7599790855"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1ca2296a-5cef-4604-8d2a-9d372bae731e",
+                    "leftValue": "={{ $json.isRescheduled }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        1072,
+        -96
+      ],
+      "id": "a6294562-eda8-4941-bc85-7aa38c4c35a1",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.notionPageId }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|rich_text",
+              "textContent": "Cancelled"
+            },
+            {
+              "key": "Last Modified|date",
+              "date": "={{ $now }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1328,
+        -240
+      ],
+      "id": "06e9e21b-c77e-4595-8aac-15435a6e99c9",
+      "name": "Update a database page",
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.notionPageId }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|rich_text",
+              "textContent": "Rescheduled"
+            },
+            {
+              "key": "Last Modified|date",
+              "date": "={{ $now }}"
+            },
+            {
+              "key": "Meeting Start Time|date",
+              "date": "={{ $json.newStart }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1328,
+        16
+      ],
+      "id": "66e5981b-2be6-4327-9735-083462697823",
+      "name": "Update a database page1",
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7739365001",
+        "text": "=🛑 Meeting Cancelled  \nSubject: {{ $('combine outlook and notion data').item.json.subject }}\nOrganizer: {{ $('Loop Over Items').item.json.rawOutlook.organizer.emailAddress.name }} \nOriginally Scheduled: {{ $('Search a page').item.json.property_meeting_start_time }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1536,
+        -240
+      ],
+      "id": "4fd4124d-1870-4a36-b41d-eccb2ccd71f4",
+      "name": "Send a text message",
+      "webhookId": "3d36a9fb-8f39-4c95-acde-cab88b176679",
+      "credentials": {
+        "telegramApi": {
+          "id": "rwXo3DnQg4JfETW0",
+          "name": "GA_TELEGRAM_BOT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7739365001",
+        "text": "=🔄 Meeting Rescheduled\n\nSubject: {{ $('Switch').item.json.subject }}\nOld Time: {{ $('Search a page').item.json.property_meeting_start_time }}\nNew Time: {{ $('combine outlook and notion data').item.json.newStart }}\n\n",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1536,
+        16
+      ],
+      "id": "dd7ffcbc-4a50-42ca-8884-818bdb10eb71",
+      "name": "Send a text message1",
+      "webhookId": "3d36a9fb-8f39-4c95-acde-cab88b176679",
+      "credentials": {
+        "telegramApi": {
+          "id": "rwXo3DnQg4JfETW0",
+          "name": "GA_TELEGRAM_BOT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// ✅ Get Outlook & Notion data directly\nconst outlook = $(\"Loop Over Items\").item.json;\nconst notion = $(\"Search a page\").item.json;\n\n// Safety checks\nif (!outlook || !outlook.meetingId) {\n  return [{ json: { error: \"⚠️ No Outlook data found from node: \" + outlookNode } }];\n}\nif (!notion || !notion.id) {\n  return [{ json: { error: \"⚠️ No Notion page data found from node: \" + notionNode } }];\n}\n\n// Extract Notion fields\nconst notionStart =\n  notion.property_meeting_start_time?.start ||\n  notion.properties?.[\"Meeting Start Time\"]?.date?.start ||\n  null;\n\nlet notionStatus = \"\";\nif (notion.properties?.[\"Status\"]?.select?.name) notionStatus = notion.properties[\"Status\"].select.name;\nelse if (notion.properties?.[\"Status\"]?.rich_text?.[0]?.plain_text) notionStatus = notion.properties[\"Status\"].rich_text[0].plain_text;\nelse if (typeof notion.property_status === \"string\") notionStatus = notion.property_status;\nnotionStatus = notionStatus.toLowerCase();\n\n// Extract Outlook fields\nconst outlookStart = outlook.startTime || outlook.start?.dateTime || null;\nconst isCancelled = outlook.isCancelled === true;\n\n// Compare logic\nlet action = \"no_change\";\nlet isRescheduled = false;\n\nif (notionStatus.includes(\"cancel\")) {\n  action = \"cancelled\";\n} else if (notionStart && outlookStart) {\n  const diff = Math.abs(new Date(outlookStart) - new Date(notionStart));\n  if (diff > 5 * 60 * 1000) {\n    action = \"rescheduled\";\n    isRescheduled = true;\n  }\n}\n\n// ✅ Return structured result\nreturn [{\n  json: {\n    notionPageId: notion.id,\n    meetingId: outlook.meetingId,\n    subject: outlook.subject,\n    oldStart: notionStart,\n    newStart: outlookStart,\n    notionStatus,\n    isRescheduled,\n    action\n  }\n}];\n\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        -96
+      ],
+      "id": "c965dfb1-457b-4c73-9739-4de4ab040fc6",
+      "name": "combine outlook and notion data"
+    }
+  ],
+  "pinData": {
+    "Fetch Upcoming Meetings (7 Days)2": [
+      {
+        "json": {
+          "@odata.etag": "W/\"y4H+Po5ty0OR6U8GiZGbOQAH88XSgg==\"",
+          "id": "AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H_Po5ty0OR6U8GiZGbOQAFhlKajAAAAA==",
+          "subject": "Riverina PCG Meeting ",
+          "bodyPreview": "Hi all,\r\n\r\nPlease find attached calendar invite for the PCG Meeting.\r\n\r\nKind Regards\r\nClare Hancock\r\n________________________________________________________________________________\r\nMicrosoft Teams Need help?\r\nJoin the meeting now\r\nMeeting ID: 457 554 69",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H%2BPo5ty0OR6U8GiZGbOQAFhlKajAAAAA%3D%3D&exvsurl=1&path=/calendar/item",
+          "start": {
+            "dateTime": "2025-10-09T00:30:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2025-10-09T01:30:00.0000000",
+            "timeZone": "UTC"
+          },
+          "attendees": [
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Clare Hancock",
+                "address": "clare@goodrock.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Paul Gedoun",
+                "address": "paul@pointcorp.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Chris Vitale",
+                "address": "chris@pointcorp.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Andrew Rockley",
+                "address": "Andrew@goodrock.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Valerian Liu",
+                "address": "valerian.liu@cvslane.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Jessie Peer",
+                "address": "jessie.peer@cvslane.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Denis Price",
+                "address": "denis@cvslane.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Meeting Room @ Goodrock",
+                "address": "meetingroom@goodrock.com.au"
+              }
+            }
+          ],
+          "organizer": {
+            "emailAddress": {
+              "name": "Clare Hancock",
+              "address": "clare@goodrock.com.au"
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "@odata.etag": "W/\"y4H+Po5ty0OR6U8GiZGbOQAH5ZNBgg==\"",
+          "id": "AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H_Po5ty0OR6U8GiZGbOQAFhlKaiwAAAA==",
+          "subject": "Notify Geelong Grammar",
+          "bodyPreview": "",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H%2BPo5ty0OR6U8GiZGbOQAFhlKaiwAAAA%3D%3D&exvsurl=1&path=/calendar/item",
+          "start": {
+            "dateTime": "2025-09-17T00:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2025-09-17T00:30:00.0000000",
+            "timeZone": "UTC"
+          },
+          "attendees": [],
+          "organizer": {
+            "emailAddress": {
+              "name": "Paul Gedoun",
+              "address": "paul@pointcorp.com.au"
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "@odata.etag": "W/\"y4H+Po5ty0OR6U8GiZGbOQAH5ZNBhg==\"",
+          "id": "AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H_Po5ty0OR6U8GiZGbOQAFhlKaiQAAAA==",
+          "subject": "Helicopter out all day",
+          "bodyPreview": "",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H%2BPo5ty0OR6U8GiZGbOQAFhlKaiQAAAA%3D%3D&exvsurl=1&path=/calendar/item",
+          "start": {
+            "dateTime": "2025-09-18T00:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2025-09-19T00:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "attendees": [
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Paul Gedoun",
+                "address": "paul@pointcorp.com.au"
+              }
+            }
+          ],
+          "organizer": {
+            "emailAddress": {
+              "name": "Paul Gedoun",
+              "address": "paul@pointcorp.com.au"
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "@odata.etag": "W/\"y4H+Po5ty0OR6U8GiZGbOQAH1lPJbw==\"",
+          "id": "AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H_Po5ty0OR6U8GiZGbOQAFhlKahwAAAA==",
+          "subject": "Response from Josh RE:Marlin Court",
+          "bodyPreview": "",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H%2BPo5ty0OR6U8GiZGbOQAFhlKahwAAAA%3D%3D&exvsurl=1&path=/calendar/item",
+          "start": {
+            "dateTime": "2025-08-22T00:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2025-08-22T00:30:00.0000000",
+            "timeZone": "UTC"
+          },
+          "attendees": [],
+          "organizer": {
+            "emailAddress": {
+              "name": "Paul Gedoun",
+              "address": "paul@pointcorp.com.au"
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "@odata.etag": "W/\"y4H+Po5ty0OR6U8GiZGbOQAHxbs7kw==\"",
+          "id": "AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H_Po5ty0OR6U8GiZGbOQAHyI8xNwAAAA==",
+          "subject": "DO NOT BOOK",
+          "bodyPreview": "",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H%2BPo5ty0OR6U8GiZGbOQAHyI8xNwAAAA%3D%3D&exvsurl=1&path=/calendar/item",
+          "start": {
+            "dateTime": "2024-04-24T02:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2024-04-24T10:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "attendees": [],
+          "organizer": {
+            "emailAddress": {
+              "name": "Paul Gedoun",
+              "address": "paul@pointcorp.com.au"
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "@odata.etag": "W/\"y4H+Po5ty0OR6U8GiZGbOQAHkE06lA==\"",
+          "id": "AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H_Po5ty0OR6U8GiZGbOQAFhlKahQAAAA==",
+          "subject": "Advice to Nifsan Developments Pty Ltd regarding termination under sunset date clause [HWLE-MATTER.C075769.928598.001]",
+          "bodyPreview": "________________________________________________________________________________\r\nMicrosoft Teams Need help?\r\nJoin the meeting now\r\nMeeting ID: 424 953 643 156 5\r\nPasscode: ke6GG2PK\r\n________________________________\r\nDial in by phone\r\n+61 2 7208 4885,,4",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H%2BPo5ty0OR6U8GiZGbOQAFhlKahQAAAA%3D%3D&exvsurl=1&path=/calendar/item",
+          "start": {
+            "dateTime": "2025-05-12T06:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2025-05-12T06:30:00.0000000",
+            "timeZone": "UTC"
+          },
+          "attendees": [
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Zachary Toren",
+                "address": "ztoren@hwle.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Clare Hancock",
+                "address": "clare@goodrock.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Chris Vitale",
+                "address": "chris@pointcorp.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Paul Gedoun",
+                "address": "paul@pointcorp.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Jason Warat",
+                "address": "jwarat@hwle.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "David Jenkins",
+                "address": "djenkins@hwle.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Andrew Rockley",
+                "address": "Andrew@goodrock.com.au"
+              }
+            }
+          ],
+          "organizer": {
+            "emailAddress": {
+              "name": "Zachary Toren",
+              "address": "ztoren@hwle.com.au"
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "@odata.etag": "W/\"y4H+Po5ty0OR6U8GiZGbOQAHdeOt6g==\"",
+          "id": "AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H_Po5ty0OR6U8GiZGbOQAHeHzrlwAAAA==",
+          "subject": "SBUV Loan Rec Run through",
+          "bodyPreview": "________________________________________________________________________________\r\nMicrosoft Teams Need help?\r\nJoin the meeting now\r\nMeeting ID: 417 068 356 704\r\nPasscode: vu6Ej6Hh\r\n________________________________\r\nFor organizers: Meeting options\r\n_____",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H%2BPo5ty0OR6U8GiZGbOQAHeHzrlwAAAA%3D%3D&exvsurl=1&path=/calendar/item",
+          "start": {
+            "dateTime": "2025-04-01T01:15:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2025-04-01T01:45:00.0000000",
+            "timeZone": "UTC"
+          },
+          "attendees": [
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Zacharie Moyon",
+                "address": "zacharie.moyon@hotelx.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "accepted",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Paul Gedoun",
+                "address": "paul@pointcorp.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Chris Vitale",
+                "address": "chris@pointcorp.com.au"
+              }
+            }
+          ],
+          "organizer": {
+            "emailAddress": {
+              "name": "Zacharie Moyon",
+              "address": "zacharie.moyon@hotelx.com.au"
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "@odata.etag": "W/\"y4H+Po5ty0OR6U8GiZGbOQAHdHRvxA==\"",
+          "id": "AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H_Po5ty0OR6U8GiZGbOQAHdyFFlgAAAA==",
+          "subject": "Pointcorp - Nifsan facility extension call",
+          "bodyPreview": "________________________________________________________________________________\r\nMicrosoft Teams Need help?\r\nJoin the meeting now\r\nMeeting ID: 482 227 185 99\r\nPasscode: Rv3Y4tW2\r\n________________________________\r\nFor organisers: Meeting options\r\n______",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H%2BPo5ty0OR6U8GiZGbOQAHdyFFlgAAAA%3D%3D&exvsurl=1&path=/calendar/item",
+          "start": {
+            "dateTime": "2025-03-31T02:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2025-03-31T02:30:00.0000000",
+            "timeZone": "UTC"
+          },
+          "attendees": [
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Denis Price",
+                "address": "denis@cvslane.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Lambros Sioros",
+                "address": "Lambros@cvslane.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Jessie Peer",
+                "address": "jessie.peer@cvslane.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Chris Vitale",
+                "address": "chris@pointcorp.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "accepted",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Paul Gedoun",
+                "address": "paul@pointcorp.com.au"
+              }
+            }
+          ],
+          "organizer": {
+            "emailAddress": {
+              "name": "Denis Price",
+              "address": "denis@cvslane.com.au"
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "@odata.etag": "W/\"y4H+Po5ty0OR6U8GiZGbOQAHcC4rfg==\"",
+          "id": "AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H_Po5ty0OR6U8GiZGbOQADovlPngAAAA==",
+          "subject": "SMS ",
+          "bodyPreview": "________________________________________________________________________________\r\nMicrosoft Teams Need help?\r\nJoin the meeting now\r\nMeeting ID: 390 997 361 066\r\nPasscode: FS2Kg7pv\r\n________________________________\r\nDial in by phone\r\n+61 2 8318 0052,,808",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H%2BPo5ty0OR6U8GiZGbOQADovlPngAAAA%3D%3D&exvsurl=1&path=/calendar/item",
+          "start": {
+            "dateTime": "2025-03-25T00:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2025-03-25T00:50:00.0000000",
+            "timeZone": "UTC"
+          },
+          "attendees": [
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Morgan, Troy",
+                "address": "tmorgan1@kpmg.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Paul Gedoun",
+                "address": "paul@pointcorp.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Brendan Gaeta",
+                "address": "Brendan.Gaeta@cosu.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Pugh, Natalie",
+                "address": "npugh1@kpmg.com.au"
+              }
+            }
+          ],
+          "organizer": {
+            "emailAddress": {
+              "name": "Morgan, Troy",
+              "address": "tmorgan1@kpmg.com.au"
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "@odata.etag": "W/\"y4H+Po5ty0OR6U8GiZGbOQAHaF9u2g==\"",
+          "id": "AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H_Po5ty0OR6U8GiZGbOQAHbGFowAAAAA==",
+          "subject": "FW: SMS Reporting",
+          "bodyPreview": "-----Original Appointment-----\r\nFrom: Zacharie Moyon\r\nSent: Wednesday, 12 March 2025 11:18 AM\r\nTo: Zacharie Moyon; Brendan Gaeta; tmorgan1@kpmg.com.au\r\nSubject: SMS Reporting\r\nWhen: Thursday, 13 March 2025 2:00 PM-2:30 PM (UTC+10:00) Brisbane.\r\nWhere:",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H%2BPo5ty0OR6U8GiZGbOQAHbGFowAAAAA%3D%3D&exvsurl=1&path=/calendar/item",
+          "start": {
+            "dateTime": "2025-03-13T04:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2025-03-13T04:30:00.0000000",
+            "timeZone": "UTC"
+          },
+          "attendees": [
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Zacharie Moyon",
+                "address": "zacharie.moyon@hotelx.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "accepted",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Paul Gedoun",
+                "address": "paul@pointcorp.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Brendan Gaeta",
+                "address": "Brendan.Gaeta@cosu.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "tmorgan1@kpmg.com.au",
+                "address": "tmorgan1@kpmg.com.au"
+              }
+            }
+          ],
+          "organizer": {
+            "emailAddress": {
+              "name": "Zacharie Moyon",
+              "address": "zacharie.moyon@hotelx.com.au"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Schedule Trigger2": {
+      "main": [
+        [
+          {
+            "node": "Fetch Upcoming Meetings (7 Days)2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Upcoming Meetings (7 Days)2": {
+      "main": [
+        [
+          {
+            "node": "Normalize Outlook Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Outlook Events": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Search a page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search a page": {
+      "main": [
+        [
+          {
+            "node": "combine outlook and notion data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Update a database page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update a database page1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a database page": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a database page1": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "combine outlook and notion data": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6a685e58-bcc3-41ce-84ab-43a9773a6f61",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "839247d7a7a8ed99c1e0d4bb79ab33ace1b57ab029218fcfc4e287b270a1e678"
+  },
+  "id": "urP18uKH85oOAMKs",
+  "tags": []
+}

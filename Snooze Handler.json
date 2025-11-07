@@ -1,0 +1,597 @@
+{
+  "name": "Snooze Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -608,
+        -48
+      ],
+      "id": "e66ee01d-1a8a-4836-8f0f-a7335af8a24f",
+      "name": "Telegram Trigger(Callback)1",
+      "webhookId": "45550027-1ea6-41d2-95a0-550284d6b8aa",
+      "credentials": {
+        "telegramApi": {
+          "id": "rwXo3DnQg4JfETW0",
+          "name": "GA_TELEGRAM_BOT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7739365001",
+        "text": "=😴 Snoozed “{{ $('Extract snoozeminutes').item.json.meetingName }}”\nI’ll remind you again in {{ $('Extract snoozeminutes').item.json.snoozeMinutes }} minutes.\n",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        704,
+        0
+      ],
+      "id": "7b285af0-8a6f-4be8-a066-d396b934b061",
+      "name": "Send snooze reminder1",
+      "webhookId": "8f968d6c-d5e7-4127-990e-a0430cfa9eb4",
+      "credentials": {
+        "telegramApi": {
+          "id": "rwXo3DnQg4JfETW0",
+          "name": "GA_TELEGRAM_BOT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|rich_text",
+              "textContent": "={{ \"Snoozed\" }}"
+            },
+            {
+              "key": "Snooze Count|number",
+              "numberValue": "={{ $json[\"property_snooze_count\"] ? Number($json[\"property_snooze_count\"]) + 1 : 1 }}"
+            },
+            {
+              "key": "Next Reminder Time|date",
+              "date": "={{ $('Extract snoozeminutes').item.json.snoozeUntil }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        0
+      ],
+      "id": "d6f9248b-ad96-4282-85d0-01e515b8a5c4",
+      "name": "Update a database page",
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "text": "={{ $json.notionid }}",
+        "limit": 1,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        240,
+        0
+      ],
+      "id": "35f80b2d-04e2-432c-8929-50c3d804a41b",
+      "name": "Search a page",
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ed056096-1c7c-4194-9a10-2b587e1676a4",
+              "leftValue": "={{ $json.dismissed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        16,
+        -48
+      ],
+      "id": "69b282d4-e0a2-429e-b1ca-5b975e722091",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "text": "={{ $json.meetingName }}",
+        "limit": 1,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        240,
+        -176
+      ],
+      "id": "94825329-b2ee-4ef2-8013-92ec48e67836",
+      "name": "Search a page2",
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|rich_text",
+              "textContent": "={{ \"Dismissed\" }}"
+            },
+            {
+              "key": "Next Reminder Time|date",
+              "date": "={{ null }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        464,
+        -176
+      ],
+      "id": "cc4f72d9-a616-4c41-abc9-1621be708c66",
+      "name": "Update a database page1",
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7739365001",
+        "text": "=🗓️ Reminder dismissed for \"{{ $('Extract snoozeminutes').item.json.meetingName }}\". No further notifications will be sent.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        704,
+        -176
+      ],
+      "id": "5ad51a98-ebaa-45ef-a2d7-e63bdd4c3cc5",
+      "name": "Send snooze reminder",
+      "webhookId": "8f968d6c-d5e7-4127-990e-a0430cfa9eb4",
+      "credentials": {
+        "telegramApi": {
+          "id": "rwXo3DnQg4JfETW0",
+          "name": "GA_TELEGRAM_BOT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Determine snooze or dismiss action\nlet minutes = 0;\nlet dismissed = false;\n\n// Check which button action was clicked\nswitch ($json.action) {\n  case 'snooze_15m':\n    minutes = 15;\n    break;\n  case 'snooze_1h':\n    minutes = 60;\n    break;\n  case 'snooze_4h':\n    minutes = 240;\n    break;\n  case 'dismiss':\n    dismissed = true;\n    break;\n  default:\n    // Unknown action, treat as no-op\n    minutes = 0;\n    dismissed = false;\n}\n\n// Calculate new reminder time (only if not dismissed)\nlet newReminderTime = null;\nif (!dismissed && minutes > 0) {\n  const now = new Date();\n  newReminderTime = new Date(now.getTime() + minutes * 60000);\n}\n\n// Return output for downstream nodes\nreturn [{\n  json: {\n    ...$json,\n    snoozeUntil: newReminderTime ? newReminderTime.toISOString() : null,\n    snoozeMinutes: minutes,\n    dismissed\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        -48
+      ],
+      "id": "ea411baa-ecfa-4720-8696-2ecc5e50a044",
+      "name": "Extract snoozeminutes"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Handle Telegram callback data safely\nlet cb;\n\n// Handle both possible payload shapes (Telegram → n8n)\nif ($json.callback_query && $json.callback_query.data) {\n  cb = $json.callback_query.data;\n} else if ($json.data && $json.data.callback_query && $json.data.callback_query.data) {\n  cb = $json.data.callback_query.data;\n} else {\n  throw new Error(\"No callback data found in input\");\n}\n\n// Split action and meeting/project name\nconst [action, ...rest] = cb.split(':');\nconst notionid = rest.join(':').trim(); // supports names with colons\n\nreturn [\n  {\n    json: {\n      action,\n      notionid\n    }\n  }\n];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        -48
+      ],
+      "id": "a364ffd8-55db-43b2-b89a-5c23aee79dbe",
+      "name": "Extract action"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -608,
+        240
+      ],
+      "id": "fee1edcc-5150-441f-9968-1575f881cde6",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "299d90a6-90a7-808a-80b0-e330156b677f",
+          "mode": "list",
+          "cachedResultName": "Meeting Reminder System",
+          "cachedResultUrl": "https://www.notion.so/299d90a690a7808a80b0e330156b677f"
+        },
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Status|rich_text",
+              "condition": "equals",
+              "richTextValue": "Snoozed"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -400,
+        240
+      ],
+      "id": "7bb14157-8ebb-449f-b3e3-07813051b97d",
+      "name": "Get many database pages",
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8e8b4c42-a2c4-44fc-b774-960ce52cab07",
+              "leftValue": "={{ $json.property_next_reminder_time.start }}",
+              "rightValue": "={{ $now }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        48,
+        256
+      ],
+      "id": "310b3227-42d8-4310-9b88-75a437caa7eb",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "chatId": "7739365001",
+        "text": "=Reminder for {{ $('Get many database pages').item.json.property_meeting_subject }}\nMeeting starts at {{ $('Get many database pages').item.json.property_meeting_start_time.start }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        368,
+        240
+      ],
+      "id": "dc818740-0b39-4c97-968a-09aa5c7497d9",
+      "name": "Send snooze reminder3",
+      "webhookId": "8f968d6c-d5e7-4127-990e-a0430cfa9eb4",
+      "credentials": {
+        "telegramApi": {
+          "id": "rwXo3DnQg4JfETW0",
+          "name": "GA_TELEGRAM_BOT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('If1').item.json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|rich_text",
+              "textContent": "New Reminder Sent"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        592,
+        240
+      ],
+      "id": "161c704e-83c1-4a06-8ab1-d96dab12af07",
+      "name": "Update a database page2",
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -192,
+        240
+      ],
+      "id": "c0c6e026-4db0-4d10-9c5a-a9c9e71a913d",
+      "name": "Loop Over Items"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger(Callback)1": {
+      "main": [
+        [
+          {
+            "node": "Extract action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send snooze reminder1": {
+      "main": [
+        []
+      ]
+    },
+    "Search a page": {
+      "main": [
+        [
+          {
+            "node": "Update a database page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Search a page2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Search a page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a database page": {
+      "main": [
+        [
+          {
+            "node": "Send snooze reminder1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search a page2": {
+      "main": [
+        [
+          {
+            "node": "Update a database page1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a database page1": {
+      "main": [
+        [
+          {
+            "node": "Send snooze reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract snoozeminutes": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract action": {
+      "main": [
+        [
+          {
+            "node": "Extract snoozeminutes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many database pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many database pages": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Send snooze reminder3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Send snooze reminder3": {
+      "main": [
+        [
+          {
+            "node": "Update a database page2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a database page2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "27c4ee87-24d4-4ce5-bdcf-e3b142c45890",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "839247d7a7a8ed99c1e0d4bb79ab33ace1b57ab029218fcfc4e287b270a1e678"
+  },
+  "id": "XzG3qqQKs9LoNeRy",
+  "tags": []
+}

@@ -1,0 +1,486 @@
+{
+  "name": "Personal Meeting Flow",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -400,
+        48
+      ],
+      "id": "52f29931-e442-48aa-be8f-156c2a446998",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "6d5704e8-536f-4c26-88ac-18c64a49f0aa",
+                    "leftValue": "={{$json.actions.send_24hr_reminder}}",
+                    "rightValue": "true",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f23053ef-49ab-41cd-ad80-1abe678137b2",
+                    "leftValue": "={{ $json.actions.send_1hr_reminder }}",
+                    "rightValue": "true",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        288,
+        48
+      ],
+      "id": "7f0631fe-7e9e-49a2-a7bb-9c7f8ab6f1c1",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are Paul's AI assistant. Generate a concise meeting reminder for Telegram.\n\nMeeting Details:\n- Subject: {{$json.subject}}\n- Time: {{$json.startTimeFormatted}}\n- Location: {{$json.location}}\n- Attendees: {{$json.attendeeCount}} people\n- Type: {{$json.meetingType}}\n\n{{$json.isProjectMeeting ? `\nProject Context:\n- Project: ${$json.projectName}\n- Client: ${$json.clientName}\n- PM: ${$json.projectManager}\n- Status: ${$json.projectStatus}\n` : ''}}\n\nDescription: {{$json.description}}\n\nCreate a friendly reminder that:\n1. Says the meeting is tomorrow\n2. Lists key attendees\n3. States the purpose\n{{$json.isProjectMeeting ? '4. Reminds to review project status' : '4. Suggests preparation'}}\n\nKeep under 200 words. Use Telegram markdown. Start with \"🗓️ **Meeting Tomorrow**\""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        608,
+        -48
+      ],
+      "id": "db501748-26da-4c5d-b146-52830941cd80",
+      "name": "Generate 24hr Reminder Message1",
+      "credentials": {
+        "openAiApi": {
+          "id": "0NVJH3timejpTAOa",
+          "name": "S&S General Purpose API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are Paul's AI assistant. Generate an early project meeting reminder.\n\nProject Meeting Details:\n- Subject: {{$json.subject}}\n- Date: {{$json.startTimeFormatted}}\n- Project: {{$json.projectName}}\n- Client: {{$json.clientName}}\n- PM: {{$json.projectManager}}\n- Status: {{$json.projectStatus}}\n\nCreate a reminder (under 150 words) that:\n1. Says meeting is in 7 days\n2. Mentions project and client\n3. Suggests gathering project updates\n4. Notes PM will be contacted\n\nUse Telegram markdown. Start with \"📅 **Project Meeting - Next Week**\""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        608,
+        208
+      ],
+      "id": "7350a08b-469b-41fa-beba-b3df743aa464",
+      "name": "Generate 1hr Reminder Message1",
+      "credentials": {
+        "openAiApi": {
+          "id": "0NVJH3timejpTAOa",
+          "name": "S&S General Purpose API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7739365001",
+        "text": "=🗓️ **Meeting Reminder -In 1 Hour**\n\n{{$json.message.content}}\n\n---\n⏰ Meeting starts soon!",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Snooze 15m",
+                    "additionalFields": {
+                      "callback_data": "=snooze_15m:{{ $('When Executed by Another Workflow').item.json.subject }}"
+                    }
+                  },
+                  {
+                    "text": "Snooze 1h",
+                    "additionalFields": {
+                      "callback_data": "=snooze_1h:{{ $('When Executed by Another Workflow').item.json.subject }}"
+                    }
+                  },
+                  {
+                    "text": "Snooze 4h",
+                    "additionalFields": {
+                      "callback_data": "=snooze_4h:{{ $('When Executed by Another Workflow').item.json.subject }}"
+                    }
+                  },
+                  {
+                    "text": "Dismiss",
+                    "additionalFields": {
+                      "callback_data": "=dismiss:{{ $('When Executed by Another Workflow').item.json.subject }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1008,
+        208
+      ],
+      "id": "dd7c1b97-32a2-4bca-8ceb-1fc47edd3c94",
+      "name": "Send 1hr Reminder to Paul1",
+      "webhookId": "8f968d6c-d5e7-4127-990e-a0430cfa9eb4",
+      "credentials": {
+        "telegramApi": {
+          "id": "rwXo3DnQg4JfETW0",
+          "name": "GA_TELEGRAM_BOT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7739365001",
+        "text": "=🗓️ **Meeting Reminder - Tomorrow**\n\n{{$json.message.content}}\n\n---\n⏰ Meeting starts soon!",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Snooze 15m",
+                    "additionalFields": {
+                      "callback_data": "=snooze_15m:{{ $('When Executed by Another Workflow').item.json.notionPageId }}"
+                    }
+                  },
+                  {
+                    "text": "Snooze 1h",
+                    "additionalFields": {
+                      "callback_data": "=snooze_1h:{{ $('When Executed by Another Workflow').item.json.notionPageId }}"
+                    }
+                  },
+                  {
+                    "text": "Snooze 4h",
+                    "additionalFields": {
+                      "callback_data": "=snooze_4h:{{ $('When Executed by Another Workflow').item.json.notionPageId }}"
+                    }
+                  },
+                  {
+                    "text": "Dismiss",
+                    "additionalFields": {
+                      "callback_data": "=dismiss:{{ $('When Executed by Another Workflow').item.json.notionPageId }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1008,
+        -48
+      ],
+      "id": "67222339-a9e2-4e5f-adac-4745521a7126",
+      "name": "Send 24hr Reminder to Paul1",
+      "webhookId": "8f968d6c-d5e7-4127-990e-a0430cfa9eb4",
+      "credentials": {
+        "telegramApi": {
+          "id": "rwXo3DnQg4JfETW0",
+          "name": "GA_TELEGRAM_BOT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Find project in notion1').item.json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Reminder 1hr sent|rich_text",
+              "textContent": "true"
+            },
+            {
+              "key": "Reminder 1hr Sent At|date",
+              "date": "={{ $now }}"
+            },
+            {
+              "key": "Meeting type|status",
+              "statusValue": "Personal"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1264,
+        208
+      ],
+      "id": "ce5b6388-98d3-426c-b473-bf5b681966c7",
+      "name": "Update 1 reminder",
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Find project in notion1').item.json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Reminder 24hr sent|rich_text",
+              "textContent": "true"
+            },
+            {
+              "key": "Reminder 24hr Sent At|date",
+              "date": "={{ $now }}"
+            },
+            {
+              "key": "Meeting type|status",
+              "statusValue": "Personal"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1264,
+        -48
+      ],
+      "id": "42160d95-59c1-47d6-8838-bb55c909b937",
+      "name": "Update 24h reminder",
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "text": "={{ $json.notionPageId }}",
+        "limit": 1,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -176,
+        48
+      ],
+      "id": "ca8599ea-4c0a-48a8-8329-a6c36c03ab9e",
+      "name": "Find project in notion1",
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================\n// STEP 1: Get meeting & Notion data\n// ============================================\nconst meeting = $input.item.json;\nconst notionResults = $input.all();\n\n// Default reminder status (assume not sent)\nlet reminderStatus = {\n  reminder_24hr_sent: null,\n  reminder_1hr_sent: null,\n};\n\nlet notionPageId = null;\n\n// ============================================\n// STEP 2: Parse Notion output (if exists)\n// ============================================\nif (notionResults.length > 0 && notionResults[0].json) {\n  const notion = notionResults[0].json;\n  notionPageId = notion.id || null;\n\n  // Read actual Notion property values (true/false/null)\n  reminderStatus = {\n    reminder_24hr_sent: notion.property_reminder_24hr_sent ?? null,\n    reminder_1hr_sent: notion.property_reminder_1hr_sent ?? null,\n  };\n}\n\nconsole.log(\"📘 Notion reminder flags:\", reminderStatus);\n\n// ============================================\n// STEP 3: Calculate meeting timing\n// ============================================\nconst hours = meeting.hoursUntilMeeting;\nlet actions = {\n  send_24hr_reminder: false,\n  send_1hr_reminder: false,\n};\n\n// ---- 24-hour reminder ----\nif (\n  (reminderStatus.reminder_24hr_sent === null || reminderStatus.reminder_24hr_sent === false) &&\n  hours >= 23 &&\n  hours <= 25\n) {\n  actions.send_24hr_reminder = true;\n}\n\n// ---- 1-hour reminder ----\nif (\n  (reminderStatus.reminder_1hr_sent === null || reminderStatus.reminder_1hr_sent === false) &&\n  hours >= 0.5 &&\n  hours <= 1.5\n) {\n  actions.send_1hr_reminder = true;\n}\n\n// ============================================\n// STEP 4: Summary\n// ============================================\nconst hasActions = Object.values(actions).some(v => v === true);\nconst actionSummary =\n  Object.entries(actions)\n    .filter(([_, v]) => v)\n    .map(([k]) => k)\n    .join(\", \") || \"No actions needed\";\n\nconsole.log(\"🕒 Action summary:\", actionSummary);\n\n// ============================================\n// STEP 5: Return combined data\n// ============================================\nreturn [\n  {\n    json: {\n      ...meeting,\n      notionPageId,\n      reminderStatus,\n      actions,\n      hasActions,\n      actionSummary,\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        48,
+        48
+      ],
+      "id": "da8cbf67-1a17-4c42-b36a-0fc6b81fbc00",
+      "name": "Check Hours and actions"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Find project in notion1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Generate 24hr Reminder Message1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate 1hr Reminder Message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate 24hr Reminder Message1": {
+      "main": [
+        [
+          {
+            "node": "Send 24hr Reminder to Paul1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate 1hr Reminder Message1": {
+      "main": [
+        [
+          {
+            "node": "Send 1hr Reminder to Paul1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send 24hr Reminder to Paul1": {
+      "main": [
+        [
+          {
+            "node": "Update 24h reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send 1hr Reminder to Paul1": {
+      "main": [
+        [
+          {
+            "node": "Update 1 reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find project in notion1": {
+      "main": [
+        [
+          {
+            "node": "Check Hours and actions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Hours and actions": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ea1392aa-76b6-440c-8236-606b11829feb",
+  "meta": {
+    "instanceId": "839247d7a7a8ed99c1e0d4bb79ab33ace1b57ab029218fcfc4e287b270a1e678"
+  },
+  "id": "DtZFxvHaYhIDBOGc",
+  "tags": []
+}

@@ -1,0 +1,278 @@
+{
+  "name": "Adhoc Reminder Agent — Dynamic Version (Recurring Enabled)",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {
+          "chatIds": "7739365001"
+        }
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -320,
+        64
+      ],
+      "id": "25309c2f-f89c-42ac-b791-692c9f266cb1",
+      "name": "Telegram Trigger(Adhoc command)",
+      "webhookId": "63a77b67-ca4d-4c0c-9078-d778fd100c58",
+      "credentials": {
+        "telegramApi": {
+          "id": "rwXo3DnQg4JfETW0",
+          "name": "GA_TELEGRAM_BOT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract & Clean\nconst text = (items[0].json.message?.text || \"\").trim();\nconst cleaned = text.replace(/@\\w+/g, \"\").trim();\nreturn [{\n  json: {\n    original_text: text,\n    cleaned_text: cleaned,\n    chatId: items[0].json.message.chat.id,\n    fromId: items[0].json.message.from.id,\n    username: items[0].json.message.from.username\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        64
+      ],
+      "id": "ac5a7723-5f60-4967-94e1-50971c1554c9",
+      "name": "Parse Command"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4O"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a strict JSON-only parser. Always return valid JSON (no extra text).\nGiven a user's natural-language reminder request and the default timezone Asia/Karachi if none specified, produce a JSON object with these keys:\n- reminder_text: string (what to remind)\n- datetime: an ISO 8601 datetime string with timezone (e.g., 2025-11-04T09:00:00+05:00). **If user gave only relative time, RESOLVE it now to an absolute ISO datetime using the next matching date in the Asia/Karachi timezone.**\n- relative: original relative phrase or null\n- create_24h: boolean\n- create_1h: boolean\n- create_7d: boolean\n- timezone: IANA timezone string used (e.g., \"Asia/Karachi\")\n\nIf you cannot determine datetime at all, set datetime to null and explain in a separate \"note\" field why (but still output the JSON object only).\nExample:\nInput: \"Set a reminder to call the client on Monday at 3 pm\"\nOutput: {\"reminder_text\":\"call the client\",\"datetime\":\"2025-11-03T15:00:00+05:00\",\"relative\":\"next Monday at 3 pm\",\"create_24h\":true,\"create_1h\":true,\"create_7d\":false,\"timezone\":\"Asia/Karachi\"}\n\nNow parse this user input:\n{{ $json[\"cleaned_text\"] }}\n",
+              "role": "system"
+            },
+            {
+              "content": "={{ $json[\"cleaned_text\"] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        112,
+        64
+      ],
+      "id": "983cae83-0fb3-4ec8-9df1-3cc199c63002",
+      "name": "Parse Adhoc Request",
+      "credentials": {
+        "openAiApi": {
+          "id": "VPPatuvqxQRYGlVi",
+          "name": "Working Capital Finance"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize OpenAI response and extract JSON whether inside code fences or not\nconst raw = items[0].json;\nlet assistantText = null;\nif (raw.choices && Array.isArray(raw.choices) && raw.choices[0] && raw.choices[0].message && raw.choices[0].message.content) {\n  assistantText = raw.choices[0].message.content;\n} else if (raw.choices && Array.isArray(raw.choices) && raw.choices[0] && raw.choices[0].text) {\n  assistantText = raw.choices[0].text;\n} else if (raw.message && raw.message.content) {\n  if (typeof raw.message.content === 'string') assistantText = raw.message.content;\n  else if (Array.isArray(raw.message.content.parts)) assistantText = raw.message.content.parts.join('\\n');\n}\nif (!assistantText) {\n  return [{ json: { error: 'assistant_output_not_found', cleaned_text: items[0].json.cleaned_text, chatId: items[0].json.chatId, fromId: items[0].json.fromId } }];\n}\nlet jsonText = assistantText.trim();\njsonText = jsonText.replace(/^```(?:json)?\\s*/, \"\").replace(/\\s*```$/, \"\");\nconst firstBrace = jsonText.indexOf('{');\nconst lastBrace = jsonText.lastIndexOf('}');\nif (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {\n  jsonText = jsonText.slice(firstBrace, lastBrace + 1);\n}\nlet parsed = null;\ntry {\n  parsed = JSON.parse(jsonText);\n} catch (e) {\n  return [{ json: { error: 'json_parse_failed', parse_error: e.toString(), assistant_raw: assistantText, assistant_extracted: jsonText, chatId: items[0].json.chatId, fromId: items[0].json.fromId } }];\n}\nconst reminder_text = parsed.reminder_text || parsed.title || items[0].json.cleaned_text || null;\nconst datetime_raw = parsed.datetime || parsed.date || null;\nconst relative_raw = parsed.relative || null;\nconst create_24h = (parsed.create_24h === true || parsed.create_24h === 'true') ? true : false;\nconst create_1h  = (parsed.create_1h  === true || parsed.create_1h  === 'true') ? true : false;\nconst create_7d  = (parsed.create_7d  === true || parsed.create_7d  === 'true') ? true : false;\nconst recurrence = parsed.recurrence || null;\nconst timezone = parsed.timezone || 'Asia/Karachi';\nlet meeting_datetime = datetime_raw;\nif (typeof meeting_datetime === 'string') meeting_datetime = meeting_datetime.trim().replace(/`/g, '');\nreturn [{ json: { reminder_text, meeting_datetime: meeting_datetime || null, relative: relative_raw || null, create_24h, create_1h, create_7d, recurrence, timezone, chatId: items[0].json.chatId, fromId: items[0].json.fromId } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        64
+      ],
+      "id": "9cf5e729-d13a-48a4-af12-2f72555c886f",
+      "name": "Interpret parser output & compute datetime"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "299d90a6-90a7-808a-80b0-e330156b677f",
+          "mode": "list",
+          "cachedResultName": "Meeting Reminder System",
+          "cachedResultUrl": "https://www.notion.so/299d90a690a7808a80b0e330156b677f"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Meeting Start Time|date",
+              "date": "={{ $json.meeting_datetime }}"
+            },
+            {
+              "key": "Meeting Subject|rich_text",
+              "textContent": "=Adhoc:{{ $json.reminder_text }}"
+            },
+            {
+              "key": "Meeting type|status",
+              "statusValue": "Adhoc"
+            },
+            {
+              "key": "Status|rich_text",
+              "textContent": "Scheduled"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        864,
+        64
+      ],
+      "id": "a8c66479-f6f0-4b2c-b39e-e9bbc9482f38",
+      "name": "Notion: Create Reminder Page",
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7739365001",
+        "text": "=✅ Reminder created!\n\n*{{ $('Interpret parser output & compute datetime').item.json.reminder_text }}*\n🕓 {{ $json.property_meeting_start_time.start }}\n🔁 Recurs: {{ $('Interpret parser output & compute datetime').item.json.recurrence }}\n",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1104,
+        64
+      ],
+      "id": "764327b8-674c-45b3-80d6-b4a73899aac1",
+      "name": "Telegram: Acknowledge",
+      "webhookId": "8f968d6c-d5e7-4127-990e-a0430cfa9eb4",
+      "credentials": {
+        "telegramApi": {
+          "id": "rwXo3DnQg4JfETW0",
+          "name": "GA_TELEGRAM_BOT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build dynamic Notion properties object\nconst notionMap = {\n  title: \"Meeting Subject\",\n  meeting_datetime: \"Meeting Start Time\",\n  meeting_type: \"Meeting Type\",\n  text: \"Text\",\n  status: \"Status\",\n  created_by: \"Created By\",\n  snooze_count: \"Snooze Count\",\n  reminder_24hr_sent_at: \"Reminder 24hr Sent At\",\n  reminder_1hr_sent_at: \"Reminder 1hr Sent At\",\n  reminder_7d_sent_at: \"Reminder 7d Sent At\",\n  last_followup_sent_at: \"Last Followup Sent At\",\n  next_followup_at: \"Next Followup At\",\n  pm_followup_interval_hrs: \"PM Followup Interval (hrs)\",\n  recurrence: \"Repeat Interval\",\n  notes: \"Notes / Context Summary\"\n};\nconst inp = items[0].json;\nconst data = {\n  reminder_text: inp.reminder_text || \"Untitled Reminder\",\n  meeting_datetime: inp.meeting_datetime || null,\n  meeting_type: inp.meeting_type || \"Adhoc\",\n  status: inp.status || \"Scheduled\",\n  snooze_count: inp.snooze_count ?? 0,\n  created_by: inp.fromId ? `Telegram:${inp.fromId}` : \"System\",\n  create_24h: inp.create_24h ?? false,\n  create_1h: inp.create_1h ?? false,\n  create_7d: inp.create_7d ?? false,\n  recurrence: inp.recurrence || null,\n  timezone: inp.timezone || \"Asia/Karachi\",\n  notes: inp.relative ? `Relative time: ${inp.relative}` : null\n};\nconst props = {};\nprops[notionMap.title] = { title: [{ text: { content: \"Adhoc: \" + data.reminder_text } }] };\nif (data.meeting_datetime) props[notionMap.meeting_datetime] = { date: { start: data.meeting_datetime } };\nprops[notionMap.meeting_type] = { select: { name: data.meeting_type } };\nprops[notionMap.text] = { rich_text: [{ text: { content: data.reminder_text } }] };\nprops[notionMap.status] = { select: { name: data.status } };\nprops[notionMap.snooze_count] = { number: data.snooze_count };\nprops[notionMap.created_by] = { rich_text: [{ text: { content: data.created_by } }] };\nif (data.notes) props[notionMap.notes] = { rich_text: [{ text: { content: data.notes } }] };\nif (data.recurrence) props[notionMap.recurrence] = { rich_text: [{ text: { content: data.recurrence } }] };\n// set default PM followup interval\nprops[notionMap.pm_followup_interval_hrs] = { number: 48 };\nreturn [{ json: { properties: props } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        64
+      ],
+      "id": "08c0eb91-7bf6-4f96-886b-05f7abbc9925",
+      "name": "Build notion properties"
+    }
+  ],
+  "pinData": {
+    "Telegram Trigger(Adhoc command)": [
+      {
+        "json": {
+          "update_id": 95757300,
+          "message": {
+            "message_id": 345,
+            "from": {
+              "id": 7739365001,
+              "is_bot": false,
+              "first_name": "Ali",
+              "language_code": "en"
+            },
+            "chat": {
+              "id": 7739365001,
+              "first_name": "Ali",
+              "type": "private"
+            },
+            "date": 1761943647,
+            "text": "Set a reminder to call the client on Monday at 3 pm\n\n→ Creates reminder for next Monday 3 pm.\n→ 24 hr + 1 hr reminders active."
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Telegram Trigger(Adhoc command)": {
+      "main": [
+        [
+          {
+            "node": "Parse Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Command": {
+      "main": [
+        [
+          {
+            "node": "Parse Adhoc Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Adhoc Request": {
+      "main": [
+        [
+          {
+            "node": "Interpret parser output & compute datetime",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Interpret parser output & compute datetime": {
+      "main": [
+        [
+          {
+            "node": "Build notion properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion: Create Reminder Page": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Acknowledge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build notion properties": {
+      "main": [
+        [
+          {
+            "node": "Notion: Create Reminder Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3bb2d133-60eb-41f4-b7dd-122a6a21bbaa",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "839247d7a7a8ed99c1e0d4bb79ab33ace1b57ab029218fcfc4e287b270a1e678"
+  },
+  "id": "KK9vdKnpI4MnBGxV",
+  "tags": []
+}

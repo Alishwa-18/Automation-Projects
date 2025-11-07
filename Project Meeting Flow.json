@@ -1,0 +1,845 @@
+{
+  "name": "Project Meeting Flow",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -736,
+        48
+      ],
+      "id": "bbff6268-04a2-49f4-b093-a05ef8f2ede5",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are Paul's AI assistant. Generate an early project meeting reminder.\n\nProject Meeting Details:\n- Subject: {{ $('When Executed by Another Workflow').item.json.subject }}\n- Date: {{ $('When Executed by Another Workflow').item.json.startTimeFormatted }}\n- Project: {{ $('When Executed by Another Workflow').item.json.projectName }}\n- Client: {{ $('When Executed by Another Workflow').item.json.clientName }}\n- Client email:{{ $('Find project in notion1').item.json.property_client }}\n- PM: {{ $('When Executed by Another Workflow').item.json.projectManager }}\n- Status: {{ $('When Executed by Another Workflow').item.json.projectStatus }}\n\nCreate a reminder (under 150 words) that:\n1. Says meeting is in 7 days\n2. Mentions project and client\n3. Suggests gathering project updates\n4. Notes PM will be contacted\n\nUse Telegram markdown. Start with \"📅 **Project Meeting - Next Week**\""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        368,
+        -192
+      ],
+      "id": "f02d9469-9f83-4276-8c35-038c99180b13",
+      "name": "Generate 7-Day Reminder Message",
+      "credentials": {
+        "openAiApi": {
+          "id": "0NVJH3timejpTAOa",
+          "name": "S&S General Purpose API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are Paul's AI assistant. Generate a concise meeting reminder for Telegram.\n\nMeeting Details:\n- Subject: {{ $('When Executed by Another Workflow').item.json.subject }}\n- Time: {{ $('When Executed by Another Workflow').item.json.startTimeFormatted }}\n- Location: {{ $('When Executed by Another Workflow').item.json.location }}\n- Attendees: {{ $('When Executed by Another Workflow').item.json.attendeeCount }} people\n- Type: {{ $('When Executed by Another Workflow').item.json.meetingType }}\n\n{{$json.isProjectMeeting ? `\nProject Context:\n- Project: ${$json.projectName}\n- Client: ${$json.clientName}\n- PM: ${$json.projectManager}\n- Status: ${$json.projectStatus}\n` : ''}}\n\nDescription: {{ $('When Executed by Another Workflow').item.json.description }}\n\nCreate a friendly reminder that:\n1. Says the meeting is tomorrow\n2. Lists key attendees\n3. States the purpose\n{{$json.isProjectMeeting ? '4. Reminds to review project status' : '4. Suggests preparation'}}\n\nKeep under 200 words. Use Telegram markdown. Start with \"🗓️ **Meeting Tomorrow**\""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        352,
+        48
+      ],
+      "id": "bfbd5650-f377-49db-ab58-38227d96004e",
+      "name": "Generate 24hr Reminder Message",
+      "credentials": {
+        "openAiApi": {
+          "id": "0NVJH3timejpTAOa",
+          "name": "S&S General Purpose API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are Paul's AI assistant. Generate an early project meeting reminder.\n\nProject Meeting Details:\n- Subject: {{ $('When Executed by Another Workflow').item.json.subject }}\n- Date: {{ $('When Executed by Another Workflow').item.json.startTimeFormatted }}\n- Project: {{ $('When Executed by Another Workflow').item.json.projectName }}\n- Client: {{ $('When Executed by Another Workflow').item.json.clientName }}\n- Client email:{{ $('Find project in notion1').item.json.property_client }}\n- PM: {{ $('When Executed by Another Workflow').item.json.projectManager }}\n- Status: {{ $('When Executed by Another Workflow').item.json.projectStatus }}\n\nCreate a reminder (under 150 words) that:\n1. Says meeting is in 7 days\n2. Mentions project and client\n3. Suggests gathering project updates\n4. Notes PM will be contacted\n\nUse Telegram markdown. Start with \"📅 **Project Meeting - Next Week**\""
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        368,
+        304
+      ],
+      "id": "42ce2ddd-40db-4add-b8ef-e7f95c38cb24",
+      "name": "Generate 1hr Reminder Message",
+      "credentials": {
+        "openAiApi": {
+          "id": "0NVJH3timejpTAOa",
+          "name": "S&S General Purpose API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.actions.send_7day_reminder }}",
+                    "rightValue": "true",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "2343b4a3-cdef-4726-93b9-40609d2d576a"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "6d5704e8-536f-4c26-88ac-18c64a49f0aa",
+                    "leftValue": "={{$json.actions.send_24hr_reminder}}",
+                    "rightValue": "true",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f23053ef-49ab-41cd-ad80-1abe678137b2",
+                    "leftValue": "={{ $json.actions.send_1hr_reminder }}",
+                    "rightValue": "true",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "9134dff6-af61-410c-bdc3-60096eaa8cc6",
+                    "leftValue": "={{ $json.actions.send_pm_email }}",
+                    "rightValue": "true",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        112,
+        16
+      ],
+      "id": "5196de83-8cb5-4c95-b403-87d941c6657a",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "chatId": "7739365001",
+        "text": "=📅 **Project Meeting - Next Week**\n\n{{$json.message.content}}\n\n---\n💡 PM will receive update request soon.",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Snooze 15m",
+                    "additionalFields": {
+                      "callback_data": "=snooze_15m:{{ $('Extract actions').item.json.id }}"
+                    }
+                  },
+                  {
+                    "text": "Snooze 1h",
+                    "additionalFields": {
+                      "callback_data": "=snooze_1h:{{ $('Extract actions').item.json.id }}"
+                    }
+                  },
+                  {
+                    "text": "Snooze 4h",
+                    "additionalFields": {
+                      "callback_data": "=snooze_4h:{{ $('Extract actions').item.json.id }}"
+                    }
+                  },
+                  {
+                    "text": "Dismiss",
+                    "additionalFields": {
+                      "callback_data": "=dismiss:{{ $('Extract actions').item.json.id }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        -192
+      ],
+      "id": "ba2e040f-da5b-46de-a94e-9ba15cf3d587",
+      "name": "Send 7-Day Project Reminder",
+      "webhookId": "8f968d6c-d5e7-4127-990e-a0430cfa9eb4",
+      "credentials": {
+        "telegramApi": {
+          "id": "rwXo3DnQg4JfETW0",
+          "name": "GA_TELEGRAM_BOT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Generate a professional email requesting project update.\n\nProject: {{ $('When Executed by Another Workflow').item.json.projectName }}\nClient: {{ $('When Executed by Another Workflow').item.json.clientName }}\nClient email: {{ $('Find project in notion1').item.json.property_client }}\nMeeting Date: {{ $('When Executed by Another Workflow').item.json.startTimeFormatted }}\nCurrent Status: {{ $('When Executed by Another Workflow').item.json.projectStatus }}\n\nEmail to  that:{{ $('When Executed by Another Workflow').item.json.projectManagerEmail }}\n1. Is friendly and professional\n2. Mentions upcoming client meeting\n3. Requests update on: status, issues, accomplishments, outstanding items\n4. Meeting is in 7 days\n5. Thanks them\n\nUnder 150 words.\nFormat as:\nSUBJECT: [subject]\n\nBODY:\n[body]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        368,
+        528
+      ],
+      "id": "92d3daeb-4a31-4a9e-9636-62e5f9c3834f",
+      "name": "Generate PM Update Request",
+      "credentials": {
+        "openAiApi": {
+          "id": "0NVJH3timejpTAOa",
+          "name": "S&S General Purpose API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toRecipients": "=paul@pointcorp.com.eu",
+        "subject": "={{$json.emailSubject}}",
+        "bodyContent": "={{$json.emailBody}}",
+        "additionalFields": {
+          "saveToSentItems": true
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        960,
+        528
+      ],
+      "id": "9214974e-83dc-4d62-8127-83e8401dcdad",
+      "name": "Send a message",
+      "webhookId": "b589230c-9b20-4e94-b7e5-c6ab372481db",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "FkMIJLgqn6wlzPfL",
+          "name": "Paul Point Corp Outlook OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "text": "={{ $json.notionPageId }}",
+        "limit": 1,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -416,
+        48
+      ],
+      "id": "93f8c14b-01d8-40ba-ab5b-16797de2e044",
+      "name": "Find project in notion1",
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7779922324",
+        "text": "=🗓️ **Meeting Reminder - Tomorrow**\n\n{{$json.message.content}}\n\n---\n⏰ Meeting starts soon!",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Snooze 15m",
+                    "additionalFields": {
+                      "callback_data": "=snooze_15m:{{ $('Extract actions').item.json.id }}"
+                    }
+                  },
+                  {
+                    "text": "Snooze 1h",
+                    "additionalFields": {
+                      "callback_data": "=snooze_1h:{{ $('Extract actions').item.json.id }}"
+                    }
+                  },
+                  {
+                    "text": "Snooze 4h",
+                    "additionalFields": {
+                      "callback_data": "=snooze_4h:{{ $('Extract actions').item.json.id }}"
+                    }
+                  },
+                  {
+                    "text": "Dismiss",
+                    "additionalFields": {
+                      "callback_data": "=dismiss:{{ $('Extract actions').item.json.id }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        48
+      ],
+      "id": "3efbda45-d6a9-480f-a682-0bb26c0d0912",
+      "name": "Send 24hr Reminder to Paul1",
+      "webhookId": "8f968d6c-d5e7-4127-990e-a0430cfa9eb4",
+      "credentials": {
+        "telegramApi": {
+          "id": "EFWPdkrPgU3pJkvs",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7779922324",
+        "text": "=🗓️ **Meeting Reminder - In 1 Hour**\n\n{{$json.message.content}}\n\n---\n⏰ Meeting starts soon!",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Snooze 15m",
+                    "additionalFields": {
+                      "callback_data": "=snooze_15m:{{ $('Extract actions').item.json.id }}"
+                    }
+                  },
+                  {
+                    "text": "Snooze 1h",
+                    "additionalFields": {
+                      "callback_data": "=snooze_1h:{{ $('Extract actions').item.json.id }}"
+                    }
+                  },
+                  {
+                    "text": "Snooze 4h",
+                    "additionalFields": {
+                      "callback_data": "=snooze_4h:{{ $('Extract actions').item.json.id }}"
+                    }
+                  },
+                  {
+                    "text": "Dismiss",
+                    "additionalFields": {
+                      "callback_data": "=dismiss:{{ $('Extract actions').item.json.id }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        304
+      ],
+      "id": "8f2c7d97-8c02-41dd-8f9a-df2b35a09a1c",
+      "name": "Send 1hr Reminder to Paul1",
+      "webhookId": "8f968d6c-d5e7-4127-990e-a0430cfa9eb4",
+      "credentials": {
+        "telegramApi": {
+          "id": "EFWPdkrPgU3pJkvs",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Find project in notion1').item.json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Reminder 7 day sent|rich_text",
+              "textContent": "true"
+            },
+            {
+              "key": "Reminder 7d Sent At|date",
+              "date": "={{$now}}"
+            },
+            {
+              "key": "Meeting type|status",
+              "statusValue": "Project"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        -192
+      ],
+      "id": "f707c83d-cd7f-440b-8f5b-1272406e5544",
+      "name": "Update 7day reminder",
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Find project in notion1').item.json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Reminder 24hr sent|rich_text",
+              "textContent": "true"
+            },
+            {
+              "key": "Reminder 24hr Sent At|date",
+              "date": "={{$now}}"
+            },
+            {
+              "key": "Meeting type|status",
+              "statusValue": "Project"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        48
+      ],
+      "id": "ae5b7fe8-78fd-4972-8131-d4aee1103371",
+      "name": "Update 24h reminder",
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Find project in notion1').item.json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Reminder 1hr sent|rich_text",
+              "textContent": "true"
+            },
+            {
+              "key": "Reminder 1hr Sent At|date",
+              "date": "={{$now}}"
+            },
+            {
+              "key": "Meeting type|status",
+              "statusValue": "Project"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        304
+      ],
+      "id": "c1d1869b-b2ca-4a1a-bd64-0b90d2944793",
+      "name": "Update 1 reminder",
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Find project in notion1').item.json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "PM Email Sent At|date",
+              "date": "={{ $now }}"
+            },
+            {
+              "key": "Pm Email Sent|rich_text",
+              "textContent": "true"
+            },
+            {
+              "key": "Meeting type|status",
+              "statusValue": "Project"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1216,
+        528
+      ],
+      "id": "f10c2c71-10d1-48cf-816d-5c6bd598c506",
+      "name": "Update pm email sent",
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================\n// STEP 1: Get meeting & Notion data\n// ============================================\nconst meeting = $input.item.json;\nconst notionResults = $input.all();\n\n// Default reminder status (assume not sent)\nlet reminderStatus = {\n  reminder_24hr_sent: null,\n  reminder_1hr_sent: null,\n  reminder_7day_sent: null,\n  pm_email_sent: null,\n};\n\nlet notionPageId = null;\n\n// ============================================\n// STEP 2: Parse Notion output (if exists)\n// ============================================\nif (notionResults.length > 0 && notionResults[0].json) {\n  const notion = notionResults[0].json;\n  notionPageId = notion.id || null;\n\n  // Read actual Notion property values (true/false/null)\n  reminderStatus = {\n    reminder_24hr_sent: notion.property_reminder_24hr_sent ?? null,\n    reminder_1hr_sent: notion.property_reminder_1hr_sent ?? null,\n    reminder_7day_sent: notion.property_reminder_7_day_sent ?? null,\n    pm_email_sent: notion.property_pm_email_sent ?? null,\n  };\n}\n\nconsole.log(\"📘 Notion reminder flags:\", reminderStatus);\n\n// ============================================\n// STEP 3: Determine which reminders still need checking\n// ============================================\n// Only evaluate timing for reminders that are null (not yet sent)\nconst hours = meeting.hoursUntilMeeting;\n\nlet actions = {\n  send_7day_reminder: false,\n  send_24hr_reminder: false,\n  send_1hr_reminder: false,\n  send_pm_email: false,\n};\n\n// ---- 7-day reminder ----\nif (\n  meeting.isProjectMeeting &&\n  (reminderStatus.reminder_7day_sent === null || reminderStatus.reminder_7day_sent === false)\n) {\n  if (hours >= 167 && hours <= 169) {\n    actions.send_7day_reminder = true;\n  }\n}\n\n// ---- 24-hour reminder ----\nif (\n  reminderStatus.reminder_24hr_sent === null ||\n  reminderStatus.reminder_24hr_sent === false\n) {\n  if (hours >= 23 && hours <= 25) {\n    actions.send_24hr_reminder = true;\n  }\n}\n\n// ---- 1-hour reminder ----\nif (\n  reminderStatus.reminder_1hr_sent === null ||\n  reminderStatus.reminder_1hr_sent === false\n) {\n  if (hours >= 0.5 && hours <= 1.5) {\n    actions.send_1hr_reminder = true;\n  }\n}\n\n// ---- PM email reminder ----\nif (\n  meeting.isProjectMeeting &&\n  meeting.hasProjectManager &&\n  (reminderStatus.pm_email_sent === null || reminderStatus.pm_email_sent === false)\n) {\n  if (hours >= 167 && hours <= 169) {\n    actions.send_pm_email = true;\n  }\n}\n\n// ============================================\n// STEP 4: Summary\n// ============================================\nconst hasActions = Object.values(actions).some(v => v === true);\nconst actionSummary =\n  Object.entries(actions)\n    .filter(([_, v]) => v)\n    .map(([k]) => k)\n    .join(\", \") || \"No actions needed\";\n\nconsole.log(\"🕒 Action summary:\", actionSummary);\n\n// ============================================\n// STEP 5: Return combined data\n// ============================================\nreturn [\n  {\n    json: {\n      ...meeting,\n      notionPageId,\n      reminderStatus,\n      actions,\n      hasActions,\n      actionSummary,\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -128,
+        48
+      ],
+      "id": "f114abc2-be4f-4790-8332-45af556e2f13",
+      "name": "Extract actions"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get AI response text\nconst aiResponse = $input.first().json.message?.content || \"\";\n\n// Get meeting data from your \"Extract actions\" node\nconst meetingData = $(\"Extract actions\").item.json || {};\n\n// Parse SUBJECT and BODY from AI response\nconst subjectMatch = aiResponse.match(/SUBJECT:\\s*(.+?)(?:\\r?\\n|$)/i);\nconst bodyMatch = aiResponse.match(/BODY:\\s*([\\s\\S]+)/i);\n\n// Extract clean subject and body\nconst subject = subjectMatch\n  ? subjectMatch[1].trim()\n  : `Project Update Request - ${meetingData.projectName || \"Project\"}`;\n\nconst body = bodyMatch ? bodyMatch[1].trim() : aiResponse.trim();\n\n// Return simplified structured email object\nreturn [{\n  json: {\n    emailSubject: subject,\n    emailBody: body,\n    toEmail: meetingData.projectManagerEmail || \"\",\n    toName: meetingData.projectManager || \"\",\n    meetingId: meetingData.meetingId || \"\",\n    projectName: meetingData.projectName || \"\",\n    notionPageId: meetingData.notionPageId || \"\"\n  }\n}];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        528
+      ],
+      "id": "01d514a4-0fec-4882-809f-922da23df2fe",
+      "name": "Extracting Email Data"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Generate 24hr Reminder Message": {
+      "main": [
+        [
+          {
+            "node": "Send 24hr Reminder to Paul1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Generate 7-Day Reminder Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate 24hr Reminder Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate 1hr Reminder Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate PM Update Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate 7-Day Reminder Message": {
+      "main": [
+        [
+          {
+            "node": "Send 7-Day Project Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate 1hr Reminder Message": {
+      "main": [
+        [
+          {
+            "node": "Send 1hr Reminder to Paul1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Find project in notion1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate PM Update Request": {
+      "main": [
+        [
+          {
+            "node": "Extracting Email Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find project in notion1": {
+      "main": [
+        [
+          {
+            "node": "Extract actions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send 7-Day Project Reminder": {
+      "main": [
+        [
+          {
+            "node": "Update 7day reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Update pm email sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send 24hr Reminder to Paul1": {
+      "main": [
+        [
+          {
+            "node": "Update 24h reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send 1hr Reminder to Paul1": {
+      "main": [
+        [
+          {
+            "node": "Update 1 reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract actions": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extracting Email Data": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "cef03194-224f-4f7d-a9e0-cb2944609662",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "839247d7a7a8ed99c1e0d4bb79ab33ace1b57ab029218fcfc4e287b270a1e678"
+  },
+  "id": "T2xDdWUu0ygwz6n3",
+  "tags": []
+}

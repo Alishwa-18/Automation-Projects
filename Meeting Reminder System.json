@@ -1,0 +1,1195 @@
+{
+  "name": "Meeting Reminder System Testing",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 */2 * * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        784,
+        2960
+      ],
+      "id": "0107d010-92f2-4385-a99f-ea2a5db2fc53",
+      "name": "Schedule Trigger7"
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "returnAll": true,
+        "filters": {
+          "custom": "=start/dateTime ge '{{ new Date().toISOString() }}' and end/dateTime le '{{ (new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000)).toISOString() }}'"
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        2960
+      ],
+      "id": "e2944db0-30ba-4aa0-b7c4-6f52086d8dfd",
+      "name": "Fetch Upcoming Meetings (7 Days)",
+      "webhookId": "fb4e3b6b-7590-4adf-b795-c22fc5d6d8a0",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "FkMIJLgqn6wlzPfL",
+          "name": "Paul Point Corp Outlook OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "299d90a6-90a7-808a-80b0-e330156b677f",
+          "mode": "list",
+          "cachedResultName": "Meeting Reminder System",
+          "cachedResultUrl": "https://www.notion.so/299d90a690a7808a80b0e330156b677f"
+        },
+        "limit": 1,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Meeting ID|title",
+              "condition": "equals",
+              "titleValue": "={{ $json.meetingId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        1936,
+        2976
+      ],
+      "id": "9d42627f-6e67-42c0-b9cd-6de62383d08b",
+      "name": "Find project in notion1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.meetingType }}",
+                    "rightValue": "Project Meeting",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "c57b5b68-e814-4332-a4e5-de322b6708c6"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5fb8d75a-933c-480e-a780-bafe85f56f1e",
+                    "leftValue": "={{ $json.meetingType }}",
+                    "rightValue": "General Meeting",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "3123fcda-c9cd-4683-89aa-189b1598069a",
+                    "leftValue": "={{ $json.meetingType }}",
+                    "rightValue": "Personal Meeting",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        3120,
+        2864
+      ],
+      "id": "0fbc7408-2d68-4361-8ed4-2bf1e80aae5e",
+      "name": "Switch2"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "T2xDdWUu0ygwz6n3",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/T2xDdWUu0ygwz6n3",
+          "cachedResultName": "Development Team — Project Meeting Flow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {}
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        3552,
+        2576
+      ],
+      "id": "c2b66d2d-7656-4c21-9399-b6ec7edd572f",
+      "name": "Call 'Project Meeting Flow'"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the meeting data from the PREVIOUS node\nlet meeting;\ntry {\n  meeting = $('Extract & Parse Meeting Data').item.json;\n} catch (e) {\n  console.log('Could not find Extract & Parse Meeting Data node by name, using previous node');\n  const allItems = $input.all();\n  if (allItems.length > 0) {\n    meeting = allItems[0].json;\n  } else {\n    throw new Error('No meeting data found');\n  }\n}\n\n// Get Notion search results (could be empty)\nconst notionResults = $input.all();\n\n// Default values (non-project meeting)\nlet meetingType = 'General Meeting';\nlet projectId = null;\nlet projectName = null;\nlet projectManager = null;\nlet projectManagerEmail = null;\nlet clientName = null;\nlet projectStatus = null;\nlet notionUrl = null;\n\n// 🆕 add this\nlet notionPageId = null;   // store the Notion page ID\n\n// ============================================\n// SECTION 1: Handle Empty Notion Results\n// ============================================\nconsole.log(`Notion search returned ${notionResults.length} results`);\n\nif (notionResults.length > 0 && notionResults[0].json) {\n  console.log('Project found in Notion via bodyPreview search - processing...');\n  \n  const project = notionResults[0].json;\n  meetingType = 'Project Meeting';\n  projectId = project.id;\n  notionUrl = project.url || null;\n  \n  // 🆕 capture Notion page ID (same as project.id)\n  notionPageId = project.id || null;\n\n  // Extract project info\n  if (project.properties) {\n    // Project Name\n    if (project.properties['Project Name']?.title?.[0]?.plain_text) {\n      projectName = project.properties['Project Name'].title[0].plain_text;\n    } else if (project.properties['Name']?.title?.[0]?.plain_text) {\n      projectName = project.properties['Name'].title[0].plain_text;\n    } else if (project.properties['Title']?.title?.[0]?.plain_text) {\n      projectName = project.properties['Title'].title[0].plain_text;\n    }\n\n    // Client Name\n    if (project.properties['Client']?.rich_text?.[0]?.plain_text) {\n      clientName = project.properties['Client'].rich_text[0].plain_text;\n    } else if (project.properties['Client Name']?.rich_text?.[0]?.plain_text) {\n      clientName = project.properties['Client Name'].rich_text[0].plain_text;\n    } else if (project.properties['Customer']?.rich_text?.[0]?.plain_text) {\n      clientName = project.properties['Customer'].rich_text[0].plain_text;\n    } else if (project.properties['Client']?.select?.name) {\n      clientName = project.properties['Client'].select.name;\n    }\n\n    // Project Status\n    if (project.properties['Status']?.select?.name) {\n      projectStatus = project.properties['Status'].select.name;\n    } else if (project.properties['Status']?.status?.name) {\n      projectStatus = project.properties['Status'].status.name;\n    } else if (project.properties['Project Status']?.select?.name) {\n      projectStatus = project.properties['Project Status'].select.name;\n    }\n\n    // Project Manager\n    if (project.properties['Project Manager']?.people?.[0]) {\n      projectManager = project.properties['Project Manager'].people[0].name;\n      projectManagerEmail = project.properties['Project Manager'].people[0].person?.email || null;\n    } else if (project.properties['PM']?.people?.[0]) {\n      projectManager = project.properties['PM'].people[0].name;\n      projectManagerEmail = project.properties['PM'].people[0].person?.email || null;\n    } else if (project.properties['Assigned To']?.people?.[0]) {\n      projectManager = project.properties['Assigned To'].people[0].name;\n      projectManagerEmail = project.properties['Assigned To'].people[0].person?.email || null;\n    } else if (project.properties['Owner']?.people?.[0]) {\n      projectManager = project.properties['Owner'].people[0].name;\n      projectManagerEmail = project.properties['Owner'].people[0].person?.email || null;\n    } else if (project.properties['Manager']?.people?.[0]) {\n      projectManager = project.properties['Manager'].people[0].name;\n      projectManagerEmail = project.properties['Manager'].people[0].person?.email || null;\n    } else if (project.properties['Project Manager Email']?.email) {\n      projectManagerEmail = project.properties['Project Manager Email'].email;\n    } else if (project.properties['PM Email']?.email) {\n      projectManagerEmail = project.properties['PM Email'].email;\n    }\n  }\n\n  console.log(`Project Details: ${projectName} | Client: ${clientName} | PM: ${projectManager}`);\n} else {\n  console.log('No matching project found in Notion');\n}\n\n// ============================================\n// SECTION 3: Fallback - Check Meeting Attendees for PM\n// ============================================\nif (meetingType === 'Project Meeting' && !projectManagerEmail && meeting.attendees && meeting.attendees.length > 0) {\n  console.log('No PM in Notion - checking meeting attendees...');\n  \n  const pmAttendee = meeting.attendees.find(a => {\n    const nameLower = (a.name || '').toLowerCase();\n    const emailLower = (a.email || '').toLowerCase();\n    \n    return nameLower.includes('project manager') ||\n           nameLower.includes(' pm ') ||\n           nameLower === 'pm' ||\n           emailLower.includes('pm@') ||\n           emailLower.includes('projectmanager') ||\n           nameLower.includes('manager');\n  });\n  \n  if (pmAttendee) {\n    projectManager = pmAttendee.name;\n    projectManagerEmail = pmAttendee.email;\n    console.log(`Found PM in attendees: ${projectManager}`);\n  }\n}\n\n// ============================================\n// SECTION 4: Check for Personal Meeting\n// ============================================\nconst personalKeywords = [\n  'personal', 'dentist', 'doctor', 'appointment',\n  'lunch', 'coffee', 'break', 'vacation', 'holiday',\n  'gym', 'workout', 'family', 'birthday', 'anniversary'\n];\n\nconst subjectLower = (meeting.subject || '').toLowerCase();\nconst descriptionLower = (meeting.description || '').toLowerCase();\nconst bodyPreviewLower = meeting.rawEvent?.bodyPreview ? meeting.rawEvent.bodyPreview.toLowerCase() : '';\n\nconst hasPersonalKeyword = personalKeywords.some(keyword =>\n  subjectLower.includes(keyword) ||\n  descriptionLower.includes(keyword) ||\n  bodyPreviewLower.includes(keyword)\n);\n\nif (hasPersonalKeyword) {\n  meetingType = 'Personal';\n}\n\n// ============================================\n// SECTION 5: Return Complete Meeting Data\n// ============================================\nreturn [{\n  json: {\n    meetingId: meeting.meetingId,\n    subject: meeting.subject,\n    startTime: meeting.startTime,\n    endTime: meeting.endTime,\n    startTimeFormatted: meeting.startTimeFormatted,\n    location: meeting.location,\n    organizer: meeting.organizer,\n    organizerEmail: meeting.organizerEmail,\n    description: meeting.description,\n    bodyPreview: meeting.rawEvent?.bodyPreview || '',\n    attendees: meeting.attendees || [],\n    attendeeEmails: meeting.attendeeEmails || [],\n    attendeeNames: meeting.attendeeNames || [],\n    attendeeCount: meeting.attendeeCount || 0,\n    hoursUntilMeeting: meeting.hoursUntilMeeting,\n    daysUntilMeeting: meeting.daysUntilMeeting,\n    customReminderHours: meeting.customReminderHours,\n    meetingType: meetingType,\n    isProjectMeeting: meetingType === 'Project Meeting',\n    isPersonalMeeting: meetingType === 'Personal',\n    isGeneralMeeting: meetingType === 'General Meeting',\n    projectId: projectId,\n    projectName: projectName,\n    projectManager: projectManager,\n    projectManagerEmail: projectManagerEmail,\n    clientName: clientName,\n    projectStatus: projectStatus,\n    notionUrl: notionUrl,\n    // 🆕 include the Notion page ID for downstream subflows\n    notionPageId: notionPageId,\n    hasProjectManager: projectManagerEmail !== null && projectManagerEmail !== ''\n  }\n}];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        2880
+      ],
+      "id": "29f5798e-758d-418e-aa67-ea27507621d8",
+      "name": "Categorize Meeting Type"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1424,
+        2960
+      ],
+      "id": "3393ee75-279f-48d1-9b3f-820e9108efe5",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "20c4f38b-89cc-4961-8f0a-ca2fc9f70ab4",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "found.id",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2320,
+        2976
+      ],
+      "id": "90d48269-0cb5-4005-97cf-e6e754c59639",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Meeting Link|url",
+              "urlValue": "={{ $('Extract & Parse Meeting Data').item.json.meetingLink }}"
+            },
+            {
+              "key": "Status|rich_text",
+              "textContent": "={{ \"Active\" }}"
+            },
+            {
+              "key": "Last Modified|date",
+              "date": "={{ new Date().toISOString() }}"
+            },
+            {
+              "key": "Meeting Start Time|date",
+              "date": "={{ $('Extract & Parse Meeting Data').item.json.startTime }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        2576,
+        2848
+      ],
+      "id": "e500beb4-6ab5-4c47-8926-b7c980d0aa14",
+      "name": "Update a database page",
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "299d90a6-90a7-808a-80b0-e330156b677f",
+          "mode": "list",
+          "cachedResultName": "Meeting Reminder System",
+          "cachedResultUrl": "https://www.notion.so/299d90a690a7808a80b0e330156b677f"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Meeting Subject|rich_text",
+              "textContent": "={{ $('Extract & Parse Meeting Data').item.json.subject }}"
+            },
+            {
+              "key": "Meeting ID|title",
+              "title": "={{ $('Fetch Upcoming Meetings (7 Days)').item.json.id }}"
+            },
+            {
+              "key": "Meeting Start Time|date",
+              "date": "={{ $('Fetch Upcoming Meetings (7 Days)').item.json.start.dateTime }}"
+            },
+            {
+              "key": "Meeting Link|url",
+              "urlValue": "={{ $('Extract & Parse Meeting Data').item.json.meetingLink }}"
+            },
+            {
+              "key": "Status|rich_text",
+              "textContent": "={{ \"Active\" }}"
+            },
+            {
+              "key": "Snooze Count|number",
+              "numberValue": "={{ 0 }}"
+            },
+            {
+              "key": "Last Modified|date",
+              "date": "={{ new Date().toISOString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        2576,
+        3136
+      ],
+      "id": "8d8b2fe4-4b79-45f1-85d5-2a406edd91db",
+      "name": "Create a database page",
+      "credentials": {
+        "notionApi": {
+          "id": "Nq4mEIYeqsYcW9w0",
+          "name": "Notion account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item.json;\n\n// --- Core Fields ---\nconst meetingId = item.id;\nconst subject = item.subject || 'Untitled Meeting';\n\n// --- Time Handling ---\nconst start = item.start?.dateTime || item.start;\nconst end = item.end?.dateTime || item.end;\nconst startTime = new Date(start);\nconst endTime = new Date(end);\nconst now = new Date();\n\nconst hoursUntilMeeting = (startTime - now) / 36e5;\nconst daysUntilMeeting = +(hoursUntilMeeting / 24).toFixed(2);\n\n// --- Location / Link ---\nconst meetingLink = item.onlineMeetingUrl || item.webLink || item.location?.displayName || 'No link';\nconst location = item.location?.displayName || meetingLink;\n\n// --- Organizer Info ---\nconst organizerName = item.organizer?.emailAddress?.name || 'Unknown';\nconst organizerEmail = item.organizer?.emailAddress?.address || '';\n\n// --- Description & Body ---\nconst description = item.bodyPreview || item.body?.content || '';\n\n// --- Attendees ---\nconst attendees = (item.attendees || []).map(a => ({\n  name: a.emailAddress?.name || 'Unknown',\n  email: a.emailAddress?.address || '',\n  status: a.status?.response || 'none'\n}));\n\n// --- Custom Reminder Keyword ---\nlet customReminderHours = null;\nconst reminderMatch = description.match(/reminder:\\s*(\\d+)\\s*hours?/i);\nif (reminderMatch) customReminderHours = parseInt(reminderMatch[1]);\n\n// --- Human-Readable Time ---\nconst startTimeFormatted = startTime.toLocaleString('en-US', { \n  timeZone: 'Asia/Karachi', // change to your region if needed\n  weekday: 'long', month: 'long', day: 'numeric',\n  hour: '2-digit', minute: '2-digit', timeZoneName: 'short'\n});\n\n// --- Reminder Triggers (flags) ---\n// These are used by “Decide Reminder Schedule” node later\nconst shouldTrigger7d  = hoursUntilMeeting <= 168 && hoursUntilMeeting > 160; // between 6.6–7 days\nconst shouldTrigger24h = hoursUntilMeeting <= 24 && hoursUntilMeeting > 20;   // between 20–24h\nconst shouldTrigger1h  = hoursUntilMeeting <= 1.5 && hoursUntilMeeting > 0.5; // between 30–90min\n\n// --- Final JSON output ---\nreturn [{\n  json: {\n    meetingId,\n    subject,\n    description,\n    startTime: startTime.toISOString(),\n    endTime: endTime.toISOString(),\n    startTimeFormatted,\n    location,\n    meetingLink,\n    organizerName,\n    organizerEmail,\n    attendees,\n    attendeeEmails: attendees.map(a => a.email),\n    attendeeNames: attendees.map(a => a.name),\n    attendeeCount: attendees.length,\n    hoursUntilMeeting: +hoursUntilMeeting.toFixed(2),\n    daysUntilMeeting,\n    customReminderHours,\n    shouldTrigger7d,\n    shouldTrigger24h,\n    shouldTrigger1h,\n    isCancelled: !!item.isCancelled,\n    lastModifiedDateTime: item.lastModifiedDateTime || item.lastModifiedDate,\n    rawEvent: item\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        2976
+      ],
+      "id": "e46ff57d-047a-464a-84e6-545fca37600b",
+      "name": "Extract & Parse Meeting Data"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ryLvKicLY5CSz0xW",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/ryLvKicLY5CSz0xW",
+          "cachedResultName": "Development Team — General Meeting Flow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        3552,
+        2816
+      ],
+      "id": "12ddd012-8394-4f67-9516-c5a6fb0d6687",
+      "name": "Call 'General Meeting Flow'1"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "DtZFxvHaYhIDBOGc",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/DtZFxvHaYhIDBOGc",
+          "cachedResultName": "Development Team — Personal Meeting Flow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        3552,
+        3024
+      ],
+      "id": "cac4248d-3f9e-4742-899a-279255eda524",
+      "name": "Call 'Personal Meeting Flow'2"
+    }
+  ],
+  "pinData": {
+    "Fetch Upcoming Meetings (7 Days)": [
+      {
+        "json": {
+          "@odata.etag": "W/\"y4H+Po5ty0OR6U8GiZGbOQAH88XSgg==\"",
+          "id": "AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H_Po5ty0OR6U8GiZGbOQAFhlKajAAAAA==",
+          "subject": "Riverina PCG Meeting ",
+          "bodyPreview": "Hi all,\r\n\r\nPlease find attached calendar invite for the PCG Meeting.\r\n\r\nKind Regards\r\nClare Hancock\r\n________________________________________________________________________________\r\nMicrosoft Teams Need help?\r\nJoin the meeting now\r\nMeeting ID: 457 554 69",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H%2BPo5ty0OR6U8GiZGbOQAFhlKajAAAAA%3D%3D&exvsurl=1&path=/calendar/item",
+          "start": {
+            "dateTime": "2025-10-09T00:30:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2025-10-09T01:30:00.0000000",
+            "timeZone": "UTC"
+          },
+          "attendees": [
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Clare Hancock",
+                "address": "clare@goodrock.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Paul Gedoun",
+                "address": "paul@pointcorp.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Chris Vitale",
+                "address": "chris@pointcorp.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Andrew Rockley",
+                "address": "Andrew@goodrock.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Valerian Liu",
+                "address": "valerian.liu@cvslane.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Jessie Peer",
+                "address": "jessie.peer@cvslane.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Denis Price",
+                "address": "denis@cvslane.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Meeting Room @ Goodrock",
+                "address": "meetingroom@goodrock.com.au"
+              }
+            }
+          ],
+          "organizer": {
+            "emailAddress": {
+              "name": "Clare Hancock",
+              "address": "clare@goodrock.com.au"
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "@odata.etag": "W/\"y4H+Po5ty0OR6U8GiZGbOQAH5ZNBgg==\"",
+          "id": "AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H_Po5ty0OR6U8GiZGbOQAFhlKaiwAAAA==",
+          "subject": "Notify Geelong Grammar",
+          "bodyPreview": "",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H%2BPo5ty0OR6U8GiZGbOQAFhlKaiwAAAA%3D%3D&exvsurl=1&path=/calendar/item",
+          "start": {
+            "dateTime": "2025-09-17T00:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2025-09-17T00:30:00.0000000",
+            "timeZone": "UTC"
+          },
+          "attendees": [],
+          "organizer": {
+            "emailAddress": {
+              "name": "Paul Gedoun",
+              "address": "paul@pointcorp.com.au"
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "@odata.etag": "W/\"y4H+Po5ty0OR6U8GiZGbOQAH5ZNBhg==\"",
+          "id": "AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H_Po5ty0OR6U8GiZGbOQAFhlKaiQAAAA==",
+          "subject": "Helicopter out all day",
+          "bodyPreview": "",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H%2BPo5ty0OR6U8GiZGbOQAFhlKaiQAAAA%3D%3D&exvsurl=1&path=/calendar/item",
+          "start": {
+            "dateTime": "2025-09-18T00:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2025-09-19T00:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "attendees": [
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Paul Gedoun",
+                "address": "paul@pointcorp.com.au"
+              }
+            }
+          ],
+          "organizer": {
+            "emailAddress": {
+              "name": "Paul Gedoun",
+              "address": "paul@pointcorp.com.au"
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "@odata.etag": "W/\"y4H+Po5ty0OR6U8GiZGbOQAH1lPJbw==\"",
+          "id": "AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H_Po5ty0OR6U8GiZGbOQAFhlKahwAAAA==",
+          "subject": "Response from Josh RE:Marlin Court",
+          "bodyPreview": "",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H%2BPo5ty0OR6U8GiZGbOQAFhlKahwAAAA%3D%3D&exvsurl=1&path=/calendar/item",
+          "start": {
+            "dateTime": "2025-08-22T00:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2025-08-22T00:30:00.0000000",
+            "timeZone": "UTC"
+          },
+          "attendees": [],
+          "organizer": {
+            "emailAddress": {
+              "name": "Paul Gedoun",
+              "address": "paul@pointcorp.com.au"
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "@odata.etag": "W/\"y4H+Po5ty0OR6U8GiZGbOQAHxbs7kw==\"",
+          "id": "AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H_Po5ty0OR6U8GiZGbOQAHyI8xNwAAAA==",
+          "subject": "DO NOT BOOK",
+          "bodyPreview": "",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H%2BPo5ty0OR6U8GiZGbOQAHyI8xNwAAAA%3D%3D&exvsurl=1&path=/calendar/item",
+          "start": {
+            "dateTime": "2024-04-24T02:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2024-04-24T10:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "attendees": [],
+          "organizer": {
+            "emailAddress": {
+              "name": "Paul Gedoun",
+              "address": "paul@pointcorp.com.au"
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "@odata.etag": "W/\"y4H+Po5ty0OR6U8GiZGbOQAHkE06lA==\"",
+          "id": "AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H_Po5ty0OR6U8GiZGbOQAFhlKahQAAAA==",
+          "subject": "Advice to Nifsan Developments Pty Ltd regarding termination under sunset date clause [HWLE-MATTER.C075769.928598.001]",
+          "bodyPreview": "________________________________________________________________________________\r\nMicrosoft Teams Need help?\r\nJoin the meeting now\r\nMeeting ID: 424 953 643 156 5\r\nPasscode: ke6GG2PK\r\n________________________________\r\nDial in by phone\r\n+61 2 7208 4885,,4",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H%2BPo5ty0OR6U8GiZGbOQAFhlKahQAAAA%3D%3D&exvsurl=1&path=/calendar/item",
+          "start": {
+            "dateTime": "2025-05-12T06:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2025-05-12T06:30:00.0000000",
+            "timeZone": "UTC"
+          },
+          "attendees": [
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Zachary Toren",
+                "address": "ztoren@hwle.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Clare Hancock",
+                "address": "clare@goodrock.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Chris Vitale",
+                "address": "chris@pointcorp.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Paul Gedoun",
+                "address": "paul@pointcorp.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Jason Warat",
+                "address": "jwarat@hwle.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "David Jenkins",
+                "address": "djenkins@hwle.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Andrew Rockley",
+                "address": "Andrew@goodrock.com.au"
+              }
+            }
+          ],
+          "organizer": {
+            "emailAddress": {
+              "name": "Zachary Toren",
+              "address": "ztoren@hwle.com.au"
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "@odata.etag": "W/\"y4H+Po5ty0OR6U8GiZGbOQAHdeOt6g==\"",
+          "id": "AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H_Po5ty0OR6U8GiZGbOQAHeHzrlwAAAA==",
+          "subject": "SBUV Loan Rec Run through",
+          "bodyPreview": "________________________________________________________________________________\r\nMicrosoft Teams Need help?\r\nJoin the meeting now\r\nMeeting ID: 417 068 356 704\r\nPasscode: vu6Ej6Hh\r\n________________________________\r\nFor organizers: Meeting options\r\n_____",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H%2BPo5ty0OR6U8GiZGbOQAHeHzrlwAAAA%3D%3D&exvsurl=1&path=/calendar/item",
+          "start": {
+            "dateTime": "2025-04-01T01:15:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2025-04-01T01:45:00.0000000",
+            "timeZone": "UTC"
+          },
+          "attendees": [
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Zacharie Moyon",
+                "address": "zacharie.moyon@hotelx.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "accepted",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Paul Gedoun",
+                "address": "paul@pointcorp.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Chris Vitale",
+                "address": "chris@pointcorp.com.au"
+              }
+            }
+          ],
+          "organizer": {
+            "emailAddress": {
+              "name": "Zacharie Moyon",
+              "address": "zacharie.moyon@hotelx.com.au"
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "@odata.etag": "W/\"y4H+Po5ty0OR6U8GiZGbOQAHdHRvxA==\"",
+          "id": "AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H_Po5ty0OR6U8GiZGbOQAHdyFFlgAAAA==",
+          "subject": "Pointcorp - Nifsan facility extension call",
+          "bodyPreview": "________________________________________________________________________________\r\nMicrosoft Teams Need help?\r\nJoin the meeting now\r\nMeeting ID: 482 227 185 99\r\nPasscode: Rv3Y4tW2\r\n________________________________\r\nFor organisers: Meeting options\r\n______",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H%2BPo5ty0OR6U8GiZGbOQAHdyFFlgAAAA%3D%3D&exvsurl=1&path=/calendar/item",
+          "start": {
+            "dateTime": "2025-03-31T02:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2025-03-31T02:30:00.0000000",
+            "timeZone": "UTC"
+          },
+          "attendees": [
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Denis Price",
+                "address": "denis@cvslane.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Lambros Sioros",
+                "address": "Lambros@cvslane.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Jessie Peer",
+                "address": "jessie.peer@cvslane.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Chris Vitale",
+                "address": "chris@pointcorp.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "accepted",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Paul Gedoun",
+                "address": "paul@pointcorp.com.au"
+              }
+            }
+          ],
+          "organizer": {
+            "emailAddress": {
+              "name": "Denis Price",
+              "address": "denis@cvslane.com.au"
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "@odata.etag": "W/\"y4H+Po5ty0OR6U8GiZGbOQAHcC4rfg==\"",
+          "id": "AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H_Po5ty0OR6U8GiZGbOQADovlPngAAAA==",
+          "subject": "SMS ",
+          "bodyPreview": "________________________________________________________________________________\r\nMicrosoft Teams Need help?\r\nJoin the meeting now\r\nMeeting ID: 390 997 361 066\r\nPasscode: FS2Kg7pv\r\n________________________________\r\nDial in by phone\r\n+61 2 8318 0052,,808",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H%2BPo5ty0OR6U8GiZGbOQADovlPngAAAA%3D%3D&exvsurl=1&path=/calendar/item",
+          "start": {
+            "dateTime": "2025-03-25T00:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2025-03-25T00:50:00.0000000",
+            "timeZone": "UTC"
+          },
+          "attendees": [
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Morgan, Troy",
+                "address": "tmorgan1@kpmg.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Paul Gedoun",
+                "address": "paul@pointcorp.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Brendan Gaeta",
+                "address": "Brendan.Gaeta@cosu.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Pugh, Natalie",
+                "address": "npugh1@kpmg.com.au"
+              }
+            }
+          ],
+          "organizer": {
+            "emailAddress": {
+              "name": "Morgan, Troy",
+              "address": "tmorgan1@kpmg.com.au"
+            }
+          }
+        }
+      },
+      {
+        "json": {
+          "@odata.etag": "W/\"y4H+Po5ty0OR6U8GiZGbOQAHaF9u2g==\"",
+          "id": "AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H_Po5ty0OR6U8GiZGbOQAHbGFowAAAAA==",
+          "subject": "FW: SMS Reporting",
+          "bodyPreview": "-----Original Appointment-----\r\nFrom: Zacharie Moyon\r\nSent: Wednesday, 12 March 2025 11:18 AM\r\nTo: Zacharie Moyon; Brendan Gaeta; tmorgan1@kpmg.com.au\r\nSubject: SMS Reporting\r\nWhen: Thursday, 13 March 2025 2:00 PM-2:30 PM (UTC+10:00) Brisbane.\r\nWhere:",
+          "webLink": "https://outlook.office365.com/owa/?itemid=AQMkAGY5ZThlYzBjLTAzNjEtNGVmNi04YjE5LWM1ZGZkMGJkYzkyYwBGAAADLmhkyHBFOku7w2v2SzMulgcAkFM5JsLqJECPxRnwned7mwAAAgENAAAAy4H%2BPo5ty0OR6U8GiZGbOQAHbGFowAAAAA%3D%3D&exvsurl=1&path=/calendar/item",
+          "start": {
+            "dateTime": "2025-03-13T04:00:00.0000000",
+            "timeZone": "UTC"
+          },
+          "end": {
+            "dateTime": "2025-03-13T04:30:00.0000000",
+            "timeZone": "UTC"
+          },
+          "attendees": [
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Zacharie Moyon",
+                "address": "zacharie.moyon@hotelx.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "accepted",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Paul Gedoun",
+                "address": "paul@pointcorp.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "Brendan Gaeta",
+                "address": "Brendan.Gaeta@cosu.com.au"
+              }
+            },
+            {
+              "type": "required",
+              "status": {
+                "response": "none",
+                "time": "0001-01-01T00:00:00Z"
+              },
+              "emailAddress": {
+                "name": "tmorgan1@kpmg.com.au",
+                "address": "tmorgan1@kpmg.com.au"
+              }
+            }
+          ],
+          "organizer": {
+            "emailAddress": {
+              "name": "Zacharie Moyon",
+              "address": "zacharie.moyon@hotelx.com.au"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Schedule Trigger7": {
+      "main": [
+        [
+          {
+            "node": "Fetch Upcoming Meetings (7 Days)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Upcoming Meetings (7 Days)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find project in notion1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch2": {
+      "main": [
+        [
+          {
+            "node": "Call 'Project Meeting Flow'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'General Meeting Flow'1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'Personal Meeting Flow'2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Categorize Meeting Type": {
+      "main": [
+        [
+          {
+            "node": "Switch2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Extract & Parse Meeting Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Project Meeting Flow'": {
+      "main": [
+        []
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Update a database page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create a database page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a database page": {
+      "main": [
+        [
+          {
+            "node": "Categorize Meeting Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract & Parse Meeting Data": {
+      "main": [
+        [
+          {
+            "node": "Find project in notion1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'General Meeting Flow'1": {
+      "main": [
+        []
+      ]
+    },
+    "Call 'Personal Meeting Flow'2": {
+      "main": [
+        []
+      ]
+    },
+    "Create a database page": {
+      "main": [
+        [
+          {
+            "node": "Categorize Meeting Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9483f940-0e6f-41b5-976a-6661f708e05b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "839247d7a7a8ed99c1e0d4bb79ab33ace1b57ab029218fcfc4e287b270a1e678"
+  },
+  "id": "tIKAmeajJAxX3gL5",
+  "tags": []
+}
