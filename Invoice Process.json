@@ -1,0 +1,4141 @@
+{
+  "name": "Invoice Processing - Ticket 2 - Save To Drive",
+  "nodes": [
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -7728,
+        -1376
+      ],
+      "id": "6eb4b0c3-92fe-4085-a7c7-87f911a913a5",
+      "name": "Wait",
+      "webhookId": "780dde6a-d159-441d-ae37-67555eb4a0ea"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1bND3tjjIdq0s8Oaanm0BY931FXvvB2BC5VJEQoZ7k0o",
+          "mode": "list",
+          "cachedResultName": "Service Pmt Register @ 2025-04-08",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bND3tjjIdq0s8Oaanm0BY931FXvvB2BC5VJEQoZ7k0o/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Service Payment Register",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bND3tjjIdq0s8Oaanm0BY931FXvvB2BC5VJEQoZ7k0o/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Invoice Date",
+              "lookupValue": "={{ $('Get LlamaParse Results').item.json.data.invoice_date }}"
+            },
+            {
+              "lookupColumn": "Invoice_Number",
+              "lookupValue": "={{ $json.fields['Invoice Number'] }}"
+            }
+          ]
+        },
+        "options": {
+          "dataLocationOnSheet": {
+            "values": {
+              "rangeDefinition": "specifyRange",
+              "headerRow": 2,
+              "firstDataRow": 3
+            }
+          },
+          "returnFirstMatch": true
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -6352,
+        -1376
+      ],
+      "id": "353ef133-a5a9-446e-b0a6-8f36149929f8",
+      "name": "Get row(s) in sheet",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "67QT8SlmHr1tdRQF",
+          "name": "LewisAutoHire"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appRXYkQjKEOPn3Ng",
+          "mode": "list",
+          "cachedResultName": "Automation Workflow Tracker",
+          "cachedResultUrl": "https://airtable.com/appRXYkQjKEOPn3Ng"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblsMehyU44JGWx7h",
+          "mode": "list",
+          "cachedResultName": "Tables",
+          "cachedResultUrl": "https://airtable.com/appRXYkQjKEOPn3Ng/tblsMehyU44JGWx7h"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Error",
+            "Error Reason": "No LAH000 Folder in Drive ",
+            "id": "={{ $json.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Table Name",
+              "displayName": "Table Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Message_ID",
+              "displayName": "Message_ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Sender",
+              "displayName": "Sender",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "File Name",
+              "displayName": "File Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Invoice Number",
+              "displayName": "Invoice Number",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Processing Email",
+                  "value": "Processing Email"
+                },
+                {
+                  "name": "In Progress",
+                  "value": "In Progress"
+                },
+                {
+                  "name": "Adding To Drive",
+                  "value": "Adding To Drive"
+                },
+                {
+                  "name": "Done",
+                  "value": "Done"
+                },
+                {
+                  "name": "Error",
+                  "value": "Error"
+                },
+                {
+                  "name": "Pulling Information From Sheet",
+                  "value": "Pulling Information From Sheet"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Error Reason",
+              "displayName": "Error Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Reciept Bank",
+              "displayName": "Reciept Bank",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Vehicle",
+              "displayName": "Vehicle",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -4880,
+        -1568
+      ],
+      "id": "154b30b0-69ec-488c-a52d-cefe98b31cc5",
+      "name": "Update record5",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "gNPlstarwc43SjbZ",
+          "name": "Airtable Personal Access Token account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "={{ Object.keys($binary)[0]}}",
+        "name": "={{ $('Create variable for naming convention').item.json.formattedDate }}{{ $('Extract LAH & Rego Number').item.json.carRegoNumber }} - {{ $('If Rows Found').item.json.Supplier }}{{ $('If Rows Found').item.json.Cost_Total }}.pdf\n",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Find Maintenance Folder').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -4208,
+        -1376
+      ],
+      "id": "11c05f4b-f62d-48a5-a3f9-32713b7cf888",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "qdHO81fNNeQ9O0fp",
+          "name": "Admin @ LAH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -7232,
+        -2000
+      ],
+      "id": "09f208b0-2c35-4837-99de-ce171f1effdd",
+      "name": "Loop Over Items6"
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -6800,
+        -1376
+      ],
+      "id": "35a64210-8e8e-4c03-a309-8ec0c19897f9",
+      "name": "Wait1",
+      "webhookId": "07678e09-6544-4241-a106-84bd94cb4b90"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appGfgXn0kP3X7Ztf",
+          "mode": "list",
+          "cachedResultName": "Lewis Auto Hire",
+          "cachedResultUrl": "https://airtable.com/appGfgXn0kP3X7Ztf"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblf3d5ZiTzEePHVA",
+          "mode": "list",
+          "cachedResultName": "Reciept Bank",
+          "cachedResultUrl": "https://airtable.com/appGfgXn0kP3X7Ztf/tblf3d5ZiTzEePHVA"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Error",
+            "id": "={{ $json.id }}",
+            "Error Reason": "No Match Found In the Spreadsheet"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Table Name",
+              "displayName": "Table Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Message_ID",
+              "displayName": "Message_ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Sender",
+              "displayName": "Sender",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "File Name",
+              "displayName": "File Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Invoice Number",
+              "displayName": "Invoice Number",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Processing Email",
+                  "value": "Processing Email"
+                },
+                {
+                  "name": "In Progress",
+                  "value": "In Progress"
+                },
+                {
+                  "name": "Adding To Drive",
+                  "value": "Adding To Drive"
+                },
+                {
+                  "name": "Done",
+                  "value": "Done"
+                },
+                {
+                  "name": "Error",
+                  "value": "Error"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Error Reason",
+              "displayName": "Error Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Reciept Bank",
+              "displayName": "Reciept Bank",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Vehicle",
+              "displayName": "Vehicle",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -5904,
+        -1280
+      ],
+      "id": "33a84dab-a3bc-4694-ac3c-13abf8d9fda9",
+      "name": "Update record13",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "ZJ8jwuoqmQoNUEPF",
+          "name": "Developer Airtable Connection"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "Split PDF",
+        "url": "={{ $json.url }}",
+        "pages": "={{ $json.pageCount }}",
+        "advancedOptionsPageNumber": {}
+      },
+      "type": "n8n-nodes-pdfco.PDFco Api",
+      "typeVersion": 1,
+      "position": [
+        -5456,
+        -1952
+      ],
+      "id": "f4a3a9d0-0e55-43f8-8b82-9b839cce02ac",
+      "name": "PDFco Api1",
+      "credentials": {
+        "pdfcoApi": {
+          "id": "BwhLzuM9fSX9hTGk",
+          "name": "Luke PDF.co Acc"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1bND3tjjIdq0s8Oaanm0BY931FXvvB2BC5VJEQoZ7k0o",
+          "mode": "list",
+          "cachedResultName": "Service Pmt Register @ 2025-04-08",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bND3tjjIdq0s8Oaanm0BY931FXvvB2BC5VJEQoZ7k0o/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Service Payment Register",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1bND3tjjIdq0s8Oaanm0BY931FXvvB2BC5VJEQoZ7k0o/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Invoice_Number",
+              "lookupValue": "={{ $('Loop Over Items6').item.json.fields['Invoice Number'] }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -4880,
+        -1952
+      ],
+      "id": "a9b84453-96c8-46be-908e-01ed96db1858",
+      "name": "Get row(s) in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "67QT8SlmHr1tdRQF",
+          "name": "LewisAutoHire"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appRXYkQjKEOPn3Ng",
+          "mode": "list",
+          "cachedResultName": "Automation Workflow Tracker",
+          "cachedResultUrl": "https://airtable.com/appRXYkQjKEOPn3Ng"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblsMehyU44JGWx7h",
+          "mode": "list",
+          "cachedResultName": "Tables",
+          "cachedResultUrl": "https://airtable.com/appRXYkQjKEOPn3Ng/tblsMehyU44JGWx7h"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Error",
+            "Error Reason": "Invoice Number Not Found in Sheet",
+            "id": "{{ $json.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Table Name",
+              "displayName": "Table Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Message_ID",
+              "displayName": "Message_ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Sender",
+              "displayName": "Sender",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "File Name",
+              "displayName": "File Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Invoice Number",
+              "displayName": "Invoice Number",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Processing Email",
+                  "value": "Processing Email"
+                },
+                {
+                  "name": "In Progress",
+                  "value": "In Progress"
+                },
+                {
+                  "name": "Adding To Drive",
+                  "value": "Adding To Drive"
+                },
+                {
+                  "name": "Done",
+                  "value": "Done"
+                },
+                {
+                  "name": "Error",
+                  "value": "Error"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Error Reason",
+              "displayName": "Error Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Reciept Bank",
+              "displayName": "Reciept Bank",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Vehicle",
+              "displayName": "Vehicle",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -4432,
+        -1856
+      ],
+      "id": "55a5440a-5372-4c5e-975a-f27132d6348f",
+      "name": "Update record16",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "gNPlstarwc43SjbZ",
+          "name": "Airtable Personal Access Token account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appRXYkQjKEOPn3Ng",
+          "mode": "list",
+          "cachedResultName": "Automation Workflow Tracker",
+          "cachedResultUrl": "https://airtable.com/appRXYkQjKEOPn3Ng"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblsMehyU44JGWx7h",
+          "mode": "list",
+          "cachedResultName": "Tables",
+          "cachedResultUrl": "https://airtable.com/appRXYkQjKEOPn3Ng/tblsMehyU44JGWx7h"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Error",
+            "Error Reason": "No LAH000 Folder in Drive ",
+            "id": "={{ $json.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Table Name",
+              "displayName": "Table Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Message_ID",
+              "displayName": "Message_ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Sender",
+              "displayName": "Sender",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "File Name",
+              "displayName": "File Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Invoice Number",
+              "displayName": "Invoice Number",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Processing Email",
+                  "value": "Processing Email"
+                },
+                {
+                  "name": "In Progress",
+                  "value": "In Progress"
+                },
+                {
+                  "name": "Adding To Drive",
+                  "value": "Adding To Drive"
+                },
+                {
+                  "name": "Done",
+                  "value": "Done"
+                },
+                {
+                  "name": "Error",
+                  "value": "Error"
+                },
+                {
+                  "name": "Pulling Information From Sheet",
+                  "value": "Pulling Information From Sheet"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Error Reason",
+              "displayName": "Error Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Reciept Bank",
+              "displayName": "Reciept Bank",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Vehicle",
+              "displayName": "Vehicle",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -3536,
+        -2144
+      ],
+      "id": "62ca2124-0d2a-4cbd-bcf2-17690ea863e4",
+      "name": "Update record17",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "gNPlstarwc43SjbZ",
+          "name": "Airtable Personal Access Token account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a77a1ba8-beed-4f04-9a39-f71e1f31774c",
+              "name": "formattedDate",
+              "value": "={{ new Date($json[\"Invoice Date\"].replace(/(\\d{2})\\/(\\d{2})\\/(\\d{4})/, '$2/$1/$3')).toISOString().split(\"T\")[0] }}\n\n",
+              "type": "string"
+            },
+            {
+              "id": "759241bb-d484-4746-8f65-98211c3d85ab",
+              "name": "carDetails",
+              "value": "={{ $json[\"Plant\"].split(\"-\").map(v => v.trim()).slice(1).join(\" - \") }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -5888,
+        -1472
+      ],
+      "id": "47926f71-51a9-439a-8bfe-e15c6e051882",
+      "name": "Create variable for naming convention"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appGfgXn0kP3X7Ztf",
+          "mode": "list",
+          "cachedResultName": "Lewis Auto Hire",
+          "cachedResultUrl": "https://airtable.com/appGfgXn0kP3X7Ztf"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblf3d5ZiTzEePHVA",
+          "mode": "list",
+          "cachedResultName": "Reciept Bank",
+          "cachedResultUrl": "https://airtable.com/appGfgXn0kP3X7Ztf/tblf3d5ZiTzEePHVA"
+        },
+        "filterByFormula": "={Invoice Number} = '{{ $json.fields['Invoice Number'] }}'\n",
+        "returnAll": false,
+        "limit": 1,
+        "options": {},
+        "sort": {
+          "property": [
+            {
+              "field": "Last In First Out",
+              "direction": "desc"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -7248,
+        -1376
+      ],
+      "id": "1a626920-5b87-4c6b-b7ab-071c7c3a0afe",
+      "name": "Search records to update record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "ZJ8jwuoqmQoNUEPF",
+          "name": "Developer Airtable Connection"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appGfgXn0kP3X7Ztf",
+          "mode": "list",
+          "cachedResultName": "Lewis Auto Hire",
+          "cachedResultUrl": "https://airtable.com/appGfgXn0kP3X7Ztf"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblf3d5ZiTzEePHVA",
+          "mode": "list",
+          "cachedResultName": "Reciept Bank",
+          "cachedResultUrl": "https://airtable.com/appGfgXn0kP3X7Ztf/tblf3d5ZiTzEePHVA"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Adding To Drive",
+            "id": "={{ $json.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Message_ID",
+              "displayName": "Message_ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Sender",
+              "displayName": "Sender",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "File Name",
+              "displayName": "File Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Invoice Number",
+              "displayName": "Invoice Number",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Vehicle",
+              "displayName": "Vehicle",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Todo",
+                  "value": "Todo"
+                },
+                {
+                  "name": "In progress",
+                  "value": "In progress"
+                },
+                {
+                  "name": "Done",
+                  "value": "Done"
+                },
+                {
+                  "name": "Error",
+                  "value": "Error"
+                },
+                {
+                  "name": "Processing",
+                  "value": "Processing"
+                },
+                {
+                  "name": "Adding To Drive",
+                  "value": "Adding To Drive"
+                },
+                {
+                  "name": "E-Mailing Reciept Bank",
+                  "value": "E-Mailing Reciept Bank"
+                },
+                {
+                  "name": "E-mail Sent",
+                  "value": "E-mail Sent"
+                },
+                {
+                  "name": "Pulling Information From Sheet",
+                  "value": "Pulling Information From Sheet"
+                },
+                {
+                  "name": "Processing Email",
+                  "value": "Processing Email"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Error Reason",
+              "displayName": "Error Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Last In First Out",
+              "displayName": "Last In First Out",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email_Subject",
+              "displayName": "Email_Subject",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email_Invoices_Paid",
+              "displayName": "Email_Invoices_Paid",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email_Drive_Links",
+              "displayName": "Email_Drive_Links",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -7024,
+        -1376
+      ],
+      "id": "79a09a9e-25e9-402c-bd5f-541ce82fd3b0",
+      "name": "Airtable Update record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "ZJ8jwuoqmQoNUEPF",
+          "name": "Developer Airtable Connection"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appGfgXn0kP3X7Ztf",
+          "mode": "list",
+          "cachedResultName": "Lewis Auto Hire",
+          "cachedResultUrl": "https://airtable.com/appGfgXn0kP3X7Ztf"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblf3d5ZiTzEePHVA",
+          "mode": "list",
+          "cachedResultName": "Reciept Bank",
+          "cachedResultUrl": "https://airtable.com/appGfgXn0kP3X7Ztf/tblf3d5ZiTzEePHVA"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Wait1').item.json.id }}",
+            "Status": "Pulling Information From Sheet"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Message_ID",
+              "displayName": "Message_ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Sender",
+              "displayName": "Sender",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "File Name",
+              "displayName": "File Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Invoice Number",
+              "displayName": "Invoice Number",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Vehicle",
+              "displayName": "Vehicle",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Todo",
+                  "value": "Todo"
+                },
+                {
+                  "name": "In progress",
+                  "value": "In progress"
+                },
+                {
+                  "name": "Done",
+                  "value": "Done"
+                },
+                {
+                  "name": "Error",
+                  "value": "Error"
+                },
+                {
+                  "name": "Processing",
+                  "value": "Processing"
+                },
+                {
+                  "name": "Adding To Drive",
+                  "value": "Adding To Drive"
+                },
+                {
+                  "name": "E-Mailing Reciept Bank",
+                  "value": "E-Mailing Reciept Bank"
+                },
+                {
+                  "name": "E-mail Sent",
+                  "value": "E-mail Sent"
+                },
+                {
+                  "name": "Pulling Information From Sheet",
+                  "value": "Pulling Information From Sheet"
+                },
+                {
+                  "name": "Processing Email",
+                  "value": "Processing Email"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Error Reason",
+              "displayName": "Error Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Last In First Out",
+              "displayName": "Last In First Out",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email_Subject",
+              "displayName": "Email_Subject",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email_Invoices_Paid",
+              "displayName": "Email_Invoices_Paid",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email_Drive_Links",
+              "displayName": "Email_Drive_Links",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -6576,
+        -1376
+      ],
+      "id": "51174f4b-b25a-4a64-9ea3-a5ae519c4e7a",
+      "name": "Airtable Update  record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "ZJ8jwuoqmQoNUEPF",
+          "name": "Developer Airtable Connection"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "54218343-bafc-400e-b8e1-de7fad79eab6",
+              "leftValue": "={{ $json.row_number }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -6128,
+        -1376
+      ],
+      "id": "ede05595-a3f7-4838-b30d-ed9c79ac837c",
+      "name": "If Rows Found"
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name contains '{{ $('Extract LAH & Rego Number').item.json.plant }}'and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+        "limit": 1,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -4880,
+        -1376
+      ],
+      "id": "def51352-3ad4-41d5-9e07-b275e49edd6d",
+      "name": "Find Vehicle Folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "qdHO81fNNeQ9O0fp",
+          "name": "Admin @ LAH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name contains 'Maintenance' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+        "limit": 1,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $json.id }}",
+            "mode": "id"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -4656,
+        -1376
+      ],
+      "id": "cfeb4e50-9d89-47c6-b310-05d3234f4dc9",
+      "name": "Find Maintenance Folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "qdHO81fNNeQ9O0fp",
+          "name": "Admin @ LAH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b4899c99-6f2a-4180-9ab5-f791cf83ee6f",
+              "name": "Job_ID",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -7920,
+        -1376
+      ],
+      "id": "5a6e3480-3014-432e-99dd-305053c213c3",
+      "name": "Get Job ID"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.cloud.llamaindex.ai/api/v1/extraction/jobs/file",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "from_ui",
+              "value": "false"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "extraction_agent_id",
+              "value": "e61ae744-0de8-433e-a376-6cfc0757625b"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "={{ Object.keys($binary)[0]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -8144,
+        -1376
+      ],
+      "id": "0947cd66-94e2-462f-aadc-d2a91be1bac9",
+      "name": "Send to LlamaParse",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "HeXVjLSJHd151fcm",
+          "name": "LlamaCloud - LAH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://api.cloud.llamaindex.ai/api/v1/extraction/jobs/{{ $('Get Job ID').item.json.Job_ID }}/result",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -7920,
+        -1616
+      ],
+      "id": "b33a940f-c95f-417d-b79f-bb1df37b398c",
+      "name": "Get LlamaParse Results",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "HeXVjLSJHd151fcm",
+          "name": "LlamaCloud - LAH"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appGfgXn0kP3X7Ztf",
+          "mode": "list",
+          "cachedResultName": "Lewis Auto Hire",
+          "cachedResultUrl": "https://airtable.com/appGfgXn0kP3X7Ztf"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblf3d5ZiTzEePHVA",
+          "mode": "list",
+          "cachedResultName": "Reciept Bank",
+          "cachedResultUrl": "https://airtable.com/appGfgXn0kP3X7Ztf/tblf3d5ZiTzEePHVA"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Sender": "={{ $('Get many messages').item.json.headers.from }}",
+            "Message_ID": "={{ $('Get many messages').item.json.id }}",
+            "Status": "Processing Email",
+            "File Name": "={{ $('Filter PDFs').item.json.fileName }}",
+            "Invoice Number": "={{ $json.data.invoices[0].invoice_number }}",
+            "Vehicle": "={{ $json.data.invoices[0].Registration_Number }}; {{ $json.data.invoices[0].LAH_Number }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Message_ID",
+              "displayName": "Message_ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Sender",
+              "displayName": "Sender",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "File Name",
+              "displayName": "File Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Invoice Number",
+              "displayName": "Invoice Number",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Vehicle",
+              "displayName": "Vehicle",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Todo",
+                  "value": "Todo"
+                },
+                {
+                  "name": "In progress",
+                  "value": "In progress"
+                },
+                {
+                  "name": "Done",
+                  "value": "Done"
+                },
+                {
+                  "name": "Error",
+                  "value": "Error"
+                },
+                {
+                  "name": "Processing",
+                  "value": "Processing"
+                },
+                {
+                  "name": "Adding To Drive",
+                  "value": "Adding To Drive"
+                },
+                {
+                  "name": "E-Mailing Reciept Bank",
+                  "value": "E-Mailing Reciept Bank"
+                },
+                {
+                  "name": "E-mail Sent",
+                  "value": "E-mail Sent"
+                },
+                {
+                  "name": "Pulling Information From Sheet",
+                  "value": "Pulling Information From Sheet"
+                },
+                {
+                  "name": "Processing Email",
+                  "value": "Processing Email"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Error Reason",
+              "displayName": "Error Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Last In First Out",
+              "displayName": "Last In First Out",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email_Subject",
+              "displayName": "Email_Subject",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email_Invoices_Paid",
+              "displayName": "Email_Invoices_Paid",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email_Drive_Links",
+              "displayName": "Email_Drive_Links",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "typecast": true
+        }
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -7616,
+        -1632
+      ],
+      "id": "f9286f04-eaf2-4892-a03c-cf176667c754",
+      "name": "Airtable Create  Record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "ZJ8jwuoqmQoNUEPF",
+          "name": "Developer Airtable Connection"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -8368,
+        -1424
+      ],
+      "id": "4ea04a03-8077-4916-a13e-eae84c8cc5f4",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Access the input data\nconst items = $input.all();\n\nreturn items.flatMap(item => {\n    if (!item.binary) {\n        return [];\n    }\n    // Filter binary data to keep only PDFs\n    return Object.keys(item.binary)\n        .filter(key => item.binary[key].mimeType === 'application/pdf')\n        .map(key => {\n            const attachment = item.binary[key];\n            return {\n                json: {\n                    fileName: attachment.fileName,\n                    mimeType: attachment.mimeType,\n                    fileSize: attachment.fileSize,\n                },\n                binary: {\n                    data: attachment // Keep the PDF binary\n                }\n            };\n        });\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -8656,
+        -1424
+      ],
+      "id": "a486ea11-05bc-451f-99bd-09eb22e63b71",
+      "name": "Filter PDFs",
+      "executeOnce": false,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "labelIds": [
+            "Label_5428903063140568803"
+          ]
+        },
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -9056,
+        -1200
+      ],
+      "id": "9df374e3-2bcd-49db-9e5b-a9a11425a023",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "7HBylK3vMb0Wisse",
+          "name": "LewisAutoHire"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "appGfgXn0kP3X7Ztf",
+          "mode": "list",
+          "cachedResultName": "Lewis Auto Hire",
+          "cachedResultUrl": "https://airtable.com/appGfgXn0kP3X7Ztf"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblf3d5ZiTzEePHVA",
+          "mode": "list",
+          "cachedResultName": "Reciept Bank",
+          "cachedResultUrl": "https://airtable.com/appGfgXn0kP3X7Ztf/tblf3d5ZiTzEePHVA"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Message_ID",
+              "displayName": "Message_ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Sender",
+              "displayName": "Sender",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "File Name",
+              "displayName": "File Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Invoice Number",
+              "displayName": "Invoice Number",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Vehicle",
+              "displayName": "Vehicle",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Todo",
+                  "value": "Todo"
+                },
+                {
+                  "name": "In progress",
+                  "value": "In progress"
+                },
+                {
+                  "name": "Done",
+                  "value": "Done"
+                },
+                {
+                  "name": "Error",
+                  "value": "Error"
+                },
+                {
+                  "name": "Processing",
+                  "value": "Processing"
+                },
+                {
+                  "name": "Adding To Drive",
+                  "value": "Adding To Drive"
+                },
+                {
+                  "name": "E-Mailing Reciept Bank",
+                  "value": "E-Mailing Reciept Bank"
+                },
+                {
+                  "name": "E-mail Sent",
+                  "value": "E-mail Sent"
+                },
+                {
+                  "name": "Pulling Information From Sheet",
+                  "value": "Pulling Information From Sheet"
+                },
+                {
+                  "name": "Processing Email",
+                  "value": "Processing Email"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Error Reason",
+              "displayName": "Error Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Last In First Out",
+              "displayName": "Last In First Out",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email_Subject",
+              "displayName": "Email_Subject",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email_Invoices_Paid",
+              "displayName": "Email_Invoices_Paid",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email_Drive_Links",
+              "displayName": "Email_Drive_Links",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -7024,
+        -1952
+      ],
+      "id": "55d62c61-e4bf-4817-ba1a-1fe076996e2b",
+      "name": "Search records to update record1",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "ZJ8jwuoqmQoNUEPF",
+          "name": "Developer Airtable Connection"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appRXYkQjKEOPn3Ng",
+          "mode": "list",
+          "cachedResultName": "Automation Workflow Tracker",
+          "cachedResultUrl": "https://airtable.com/appRXYkQjKEOPn3Ng"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblsMehyU44JGWx7h",
+          "mode": "list",
+          "cachedResultName": "Tables",
+          "cachedResultUrl": "https://airtable.com/appRXYkQjKEOPn3Ng/tblsMehyU44JGWx7h"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "Vehicle": "={{ $('Get LlamaParse Results').item.json.data.invoices[0].Registration_Number }};{{ $('Get LlamaParse Results').item.json.data.invoices[0].LAH_Number }}",
+            "Status": "In Progress"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Table Name",
+              "displayName": "Table Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Message_ID",
+              "displayName": "Message_ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Sender",
+              "displayName": "Sender",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "File Name",
+              "displayName": "File Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Invoice Number",
+              "displayName": "Invoice Number",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Processing Email",
+                  "value": "Processing Email"
+                },
+                {
+                  "name": "In Progress",
+                  "value": "In Progress"
+                },
+                {
+                  "name": "Adding To Drive",
+                  "value": "Adding To Drive"
+                },
+                {
+                  "name": "Done",
+                  "value": "Done"
+                },
+                {
+                  "name": "Error",
+                  "value": "Error"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Error Reason",
+              "displayName": "Error Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Reciept Bank",
+              "displayName": "Reciept Bank",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Vehicle",
+              "displayName": "Vehicle",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -6800,
+        -1952
+      ],
+      "id": "196f4202-adec-4702-9056-1292c641e524",
+      "name": "Airtable Update Record",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "gNPlstarwc43SjbZ",
+          "name": "Airtable Personal Access Token account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name contains '{{ $('Extract LAH & Rego Number1').item.json.plant }}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+        "limit": 1,
+        "filter": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -3536,
+        -1952
+      ],
+      "id": "e79d2a1f-5438-42f8-b0f3-76f6b2775f02",
+      "name": "Find Vehicle Folder1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "ieV6pDrhuhhjdYxC",
+          "name": "Google Drive account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name contains 'Maintenance' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+        "limit": 1,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "={{ $json.id }}",
+            "mode": "id"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -3312,
+        -1952
+      ],
+      "id": "6894baa2-76a8-4a47-b6ee-68af476ab2ef",
+      "name": "Find Maintenance Folder1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "ieV6pDrhuhhjdYxC",
+          "name": "Google Drive account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "dd94f425-659e-4034-9d90-ac187057467a",
+              "leftValue": "={{ $('Extract LAH & Rego Number1').item.json.carUnitNumber }}",
+              "rightValue": "LAH000",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3760,
+        -2048
+      ],
+      "id": "b5b93a00-9e69-48a1-911b-efb798ff53fd",
+      "name": "If LAH000"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "dd94f425-659e-4034-9d90-ac187057467a",
+              "leftValue": "={{ $('Extract LAH & Rego Number').item.json.carUnitNumber }}",
+              "rightValue": "LAH000",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -5168,
+        -1472
+      ],
+      "id": "b9689264-5114-4c5d-8b0c-fd535e2f6466",
+      "name": "If LAH"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a77a1ba8-beed-4f04-9a39-f71e1f31774c",
+              "name": "formattedDate",
+              "value": "={{ new Date($json[\"Invoice Date\"].replace(/(\\d{2})\\/(\\d{2})\\/(\\d{4})/, '$2/$1/$3')).toISOString().split(\"T\")[0] }}\n\n",
+              "type": "string"
+            },
+            {
+              "id": "759241bb-d484-4746-8f65-98211c3d85ab",
+              "name": "carDetails",
+              "value": "={{ $json[\"Plant\"].split(\"-\").map(v => v.trim()).slice(1).join(\" - \") }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -4432,
+        -2048
+      ],
+      "id": "a6f77c59-ba25-4d71-9c92-bfaa4773fd47",
+      "name": "Create variable for naming convention1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get Plant text from input\nconst plant = $('If Rows Found').first().json.Plant|| \"\";\n\n// Extract LAH number (car unit number)\nconst carUnitNumber = plant.match(/[A-Z]{3}\\d+/)?.[0] || null;\n\n// Extract registration number (usually after dash, first token)\nconst carRegoNumber = plant.split(\"-\")[1]?.trim().split(\" \")[0] || null;\n\nreturn [{\n  carUnitNumber,\n  carRegoNumber,\n  plant,\n}];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5680,
+        -1472
+      ],
+      "id": "421259af-bc91-49d8-b904-0b80da4637f8",
+      "name": "Extract LAH & Rego Number"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get Plant text from input\nconst plant = $('If rows found').first().json.Plant|| \"\";\n\n// Extract LAH number (car unit number)\nconst carUnitNumber = plant.match(/[A-Z]{3}\\d+/)?.[0] || null;\n\n// Extract registration number (usually after dash, first token)\nconst carRegoNumber = plant.split(\"-\")[1]?.trim().split(\" \")[0] || null;\n\nreturn [{\n  carUnitNumber,\n  carRegoNumber,\n  plant,\n}];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4208,
+        -2048
+      ],
+      "id": "40c94ef8-bbdf-4f3e-95b7-899f611e36cc",
+      "name": "Extract LAH & Rego Number1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appRXYkQjKEOPn3Ng",
+          "mode": "list",
+          "cachedResultName": "Automation Workflow Tracker",
+          "cachedResultUrl": "https://airtable.com/appRXYkQjKEOPn3Ng"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblsMehyU44JGWx7h",
+          "mode": "list",
+          "cachedResultName": "Tables",
+          "cachedResultUrl": "https://airtable.com/appRXYkQjKEOPn3Ng/tblsMehyU44JGWx7h"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Adding To Drive",
+            "Invoice Number": "={{ $('If Rows Found').item.json.Invoice_Number }}",
+            "id": "={{ $('Airtable Update  record').item.json.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Table Name",
+              "displayName": "Table Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Message_ID",
+              "displayName": "Message_ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Sender",
+              "displayName": "Sender",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "File Name",
+              "displayName": "File Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Invoice Number",
+              "displayName": "Invoice Number",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Processing Email",
+                  "value": "Processing Email"
+                },
+                {
+                  "name": "In Progress",
+                  "value": "In Progress"
+                },
+                {
+                  "name": "Adding To Drive",
+                  "value": "Adding To Drive"
+                },
+                {
+                  "name": "Done",
+                  "value": "Done"
+                },
+                {
+                  "name": "Error",
+                  "value": "Error"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Error Reason",
+              "displayName": "Error Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Reciept Bank",
+              "displayName": "Reciept Bank",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Vehicle",
+              "displayName": "Vehicle",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -5456,
+        -1472
+      ],
+      "id": "bb614007-983a-4bf7-b382-761dc3adde81",
+      "name": "Airtable Update record1",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "ZJ8jwuoqmQoNUEPF",
+          "name": "Developer Airtable Connection"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appRXYkQjKEOPn3Ng",
+          "mode": "list",
+          "cachedResultName": "Automation Workflow Tracker",
+          "cachedResultUrl": "https://airtable.com/appRXYkQjKEOPn3Ng"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblsMehyU44JGWx7h",
+          "mode": "list",
+          "cachedResultName": "Tables",
+          "cachedResultUrl": "https://airtable.com/appRXYkQjKEOPn3Ng/tblsMehyU44JGWx7h"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Status": "Adding To Drive",
+            "Invoice Number": "={{ $('If rows found').item.json.Invoice_Number }}",
+            "id": "=recJVpEh8RTiWA3j6"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Table Name",
+              "displayName": "Table Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Message_ID",
+              "displayName": "Message_ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Sender",
+              "displayName": "Sender",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "File Name",
+              "displayName": "File Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Invoice Number",
+              "displayName": "Invoice Number",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Processing Email",
+                  "value": "Processing Email"
+                },
+                {
+                  "name": "In Progress",
+                  "value": "In Progress"
+                },
+                {
+                  "name": "Adding To Drive",
+                  "value": "Adding To Drive"
+                },
+                {
+                  "name": "Done",
+                  "value": "Done"
+                },
+                {
+                  "name": "Error",
+                  "value": "Error"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Error Reason",
+              "displayName": "Error Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Reciept Bank",
+              "displayName": "Reciept Bank",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Vehicle",
+              "displayName": "Vehicle",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -3984,
+        -2048
+      ],
+      "id": "d586688f-3cd7-4dda-8b20-c54685f5801b",
+      "name": "Airtable Update Record1",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "gNPlstarwc43SjbZ",
+          "name": "Airtable Personal Access Token account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "54218343-bafc-400e-b8e1-de7fad79eab6",
+              "leftValue": "={{ $json.row_number }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -4656,
+        -1952
+      ],
+      "id": "3e95e96f-f9ab-4699-b202-63ace4777caa",
+      "name": "If rows found"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "o4-mini",
+          "mode": "list",
+          "cachedResultName": "O4-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Please calculate the sum of all the costTotal to two decmial places. \n{{ $json.body }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        -5232,
+        -1952
+      ],
+      "id": "b7a2f73d-a592-42a3-8022-a15fd2ba48ad",
+      "name": "Aggregate Invoice Total",
+      "credentials": {
+        "openAiApi": {
+          "id": "VPPatuvqxQRYGlVi",
+          "name": "Working Capital Finance"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "Search in PDF",
+        "url": "={{ $json.url }}",
+        "searchString": "={{ $('Loop Over Items6').item.json.fields['File Name'] }}",
+        "advancedOptions": {}
+      },
+      "type": "n8n-nodes-pdfco.PDFco Api",
+      "typeVersion": 1,
+      "position": [
+        -6128,
+        -1952
+      ],
+      "id": "6094e6d0-64ef-4bf1-9a12-5a0075a1cb52",
+      "name": "PDFco Api",
+      "credentials": {
+        "pdfcoApi": {
+          "id": "CZIBMGMrMxnnNf8a",
+          "name": "PDF.co account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "Upload File to PDF.co",
+        "binaryData": true,
+        "binaryPropertyName": "={{ Object.keys($binary)[0]}}",
+        "name": "={{$binary.data.fileName}}"
+      },
+      "type": "n8n-nodes-pdfco.PDFco Api",
+      "typeVersion": 1,
+      "position": [
+        -6352,
+        -1952
+      ],
+      "id": "440d3030-d172-4da6-af5d-b3792606dada",
+      "name": "PDFco Api2",
+      "credentials": {
+        "pdfcoApi": {
+          "id": "CZIBMGMrMxnnNf8a",
+          "name": "PDF.co account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "={{ Object.keys($binary)[0]}}",
+        "name": "={{ $('Create variable for naming convention1').item.json.formattedDate }}-{{ $('Extract LAH & Rego Number1').item.json.carRegoNumber }} - {{ $('If rows found').item.json.Supplier }}{{ $('If rows found').item.json.Cost_Total }}.pdf",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -2864,
+        -1952
+      ],
+      "id": "190733e5-b632-4910-a9ce-521f966a4954",
+      "name": "Upload file1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CLQ57gssH9rUdFOt",
+          "name": "Developer Google Drive Connection"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 60
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -8144,
+        -1616
+      ],
+      "id": "24f7837e-a4eb-417f-9853-ee67660f5a84",
+      "name": "Wait2",
+      "webhookId": "780dde6a-d159-441d-ae37-67555eb4a0ea"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2c073232-b277-410b-b875-6c7639360a86",
+              "leftValue": "={{ $('Get LlamaParse Results').item.json.data.invoices }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "array",
+                "operation": "lengthGt",
+                "rightType": "number"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -7408,
+        -1632
+      ],
+      "id": "fe98026d-8af0-4030-94da-cfb309870a72",
+      "name": "Filter invoice (if one or more)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Bring back binary data from the Loop Over Items node\nconst originalBinary = $item(0).$node[\"Filter PDFs\"].binary;\n\nreturn [\n  {\n    json: $json,        // keep parsed invoice data\n    binary: originalBinary // reattach the PDF binary\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -6576,
+        -1952
+      ],
+      "id": "556327d0-0be3-4448-be38-33cb32a524e5",
+      "name": "Get file to upload"
+    },
+    {
+      "parameters": {
+        "operation": "Convert to PDF",
+        "url": "={{ $json.pdfUrl }}",
+        "advancedOptionsCommon": {}
+      },
+      "type": "n8n-nodes-pdfco.PDFco Api",
+      "typeVersion": 1,
+      "position": [
+        -5680,
+        -1952
+      ],
+      "id": "0492bf12-78f3-434d-9487-50d945be40cb",
+      "name": "PDFco Api3",
+      "credentials": {
+        "pdfcoApi": {
+          "id": "CZIBMGMrMxnnNf8a",
+          "name": "PDF.co account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Bring back binary data from the Loop Over Items node\nconst originalBinary = $item(0).$node[\"Filter PDFs\"].binary;\n\nreturn [\n  {\n    json: $json,        // keep parsed invoice data\n    binary: originalBinary // reattach the PDF binary\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4432,
+        -1376
+      ],
+      "id": "796f0e84-3dba-40b2-8fb2-6ddab7bf1d77",
+      "name": "File to upload1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Bring back binary data from the Loop Over Items node\nconst originalBinary = $item(0).$node[\"Filter PDFs\"].binary;\n\nreturn [\n  {\n    json: $json,        // keep parsed invoice data\n    binary: originalBinary // reattach the PDF binary\n  }\n];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3088,
+        -1952
+      ],
+      "id": "11641fca-87c9-4d36-a5fa-4d6833db468a",
+      "name": "File to upload2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the first input item\nconst inputData = $input.first().json;\n\n// Check if input is valid\nif (!inputData || !inputData.pageCount) {\n    return [{ json: { error: \"No pageCount found\" } }];\n}\n\n// Start page is always 1 (first page)\nconst startPage = 1;\n\n// End page is the total page count\nconst endPage = inputData.pageCount;\n\n// Return results\nreturn [{ json: { startPage, endPage, totalPages: inputData.pageCount, pdfUrl: inputData.url } }];\n\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -5904,
+        -1952
+      ],
+      "id": "716ca9bb-34d9-4677-ada9-f86769456c0f",
+      "name": "Extract page"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://selrai.app.n8n.cloud/webhook/4d22e07a-b156-4f04-bd3e-c888266bd35f",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "RowNumber",
+              "value": "={{ $json.RowNumber }}"
+            },
+            {
+              "name": "LAHNumber",
+              "value": "={{ $json.LAHNumber }}"
+            },
+            {
+              "name": "RegoNumber",
+              "value": "={{ $json.RegoNumber }}"
+            },
+            {
+              "name": "AirtableRecordID",
+              "value": "={{ $json.AirtableRecordID }}"
+            },
+            {
+              "name": "TransactionTotal",
+              "value": "={{ $json.TransactionTotal }}"
+            },
+            {
+              "name": "DriveLinks",
+              "value": "={{ $json.DriveLinks }}"
+            },
+            {
+              "name": "InvoicesProcesssed",
+              "value": "={{ $json.InvoicesProcessed }}"
+            },
+            {
+              "name": "Comments",
+              "value": "={{ $json.Comments }}"
+            },
+            {
+              "name": "AI",
+              "value": "={{ $json.AI }}"
+            },
+            {
+              "name": "Supplier",
+              "value": "={{ $json.Supplier }}"
+            },
+            {
+              "name": "PaymentMethod",
+              "value": "={{ $json.PaymentMethod }}"
+            },
+            {
+              "name": "PaymentDate",
+              "value": "={{ $json.PaymentDate }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -3536,
+        -1376
+      ],
+      "id": "c97ea9ed-0b3e-4aed-bd9b-269fa25322b1",
+      "name": "Receipt Bank"
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone",
+            "allowFileDiscovery": true
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -3984,
+        -1376
+      ],
+      "id": "144dec0e-df96-4af5-b532-ffeafaaa4ceb",
+      "name": "Share file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "qdHO81fNNeQ9O0fp",
+          "name": "Admin @ LAH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ec05cb0e-3abb-4f2a-812d-47ca8624f0cd",
+              "name": "RowNumber",
+              "value": "={{ $('Get row(s) in sheet').item.json.row_number }}",
+              "type": "string"
+            },
+            {
+              "id": "18fbbdaa-c2d3-4e12-83c7-db9990d05ecf",
+              "name": "Plant",
+              "value": "={{ $('Get row(s) in sheet').item.json.Plant }}",
+              "type": "string"
+            },
+            {
+              "id": "8fac580c-f2d6-4e3b-b6e2-3aee6dff81ae",
+              "name": "LAHNumber",
+              "value": "={{ $('Extract LAH & Rego Number').item.json.carUnitNumber }}",
+              "type": "string"
+            },
+            {
+              "id": "11cf906b-9a75-4869-9623-5f127b77ce0f",
+              "name": "RegoNumber",
+              "value": "={{ $('Extract LAH & Rego Number').item.json.carRegoNumber }}",
+              "type": "string"
+            },
+            {
+              "id": "40370d67-4719-453b-9dda-f9ded7914ef8",
+              "name": "AirtableRecordID",
+              "value": "={{ $('Airtable Update record1').item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "e6d3e0a3-45b3-494a-a3ea-f059dbc82897",
+              "name": "TransactionTotal",
+              "value": "={{ $('Get row(s) in sheet').item.json.Cost_Total }}",
+              "type": "string"
+            },
+            {
+              "id": "70239ff2-16a7-4cd5-9126-1364ae82170f",
+              "name": "DriveLinks",
+              "value": "={{ $('Upload file').item.json.webContentLink }}",
+              "type": "string"
+            },
+            {
+              "id": "da821c13-029a-4ebe-abf2-f731b04e35dd",
+              "name": "InvoicesProcessed",
+              "value": "={{ $('Filter invoice (if one or more)').item.json.fields['Invoice Number'] }}",
+              "type": "string"
+            },
+            {
+              "id": "5798bbf6-a536-4c0f-9078-8ce44455a1ad",
+              "name": "Comments",
+              "value": "={{ $('Get row(s) in sheet').item.json.Comments }}",
+              "type": "string"
+            },
+            {
+              "id": "ec662299-90a2-4ed3-8fae-045de25d8e68",
+              "name": "AI",
+              "value": "={{ $('Get row(s) in sheet').item.json.AI }}",
+              "type": "string"
+            },
+            {
+              "id": "a17a3098-fcff-421a-8f2e-9d2cf5cd7266",
+              "name": "Supplier",
+              "value": "={{ $('Get row(s) in sheet').item.json.Supplier }}",
+              "type": "string"
+            },
+            {
+              "id": "8b99c8a2-09ad-44ac-a1d2-8a4cc902af0f",
+              "name": "PaymentDate",
+              "value": "={{ $('Get row(s) in sheet').item.json.col_15 }}",
+              "type": "string"
+            },
+            {
+              "id": "aea19d8a-afdd-4ed5-be0c-1631bada9658",
+              "name": "PaymentMethod",
+              "value": "={{ $('Get row(s) in sheet').item.json.col_14 }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3760,
+        -1376
+      ],
+      "id": "82d25266-4e94-4e32-bca4-bceb15a0310b",
+      "name": "ReceiptBank Data"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://selrai.app.n8n.cloud/webhook-test/4d22e07a-b156-4f04-bd3e-c888266bd35f",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "RowNumber",
+              "value": "={{ $json.RowNumber }}"
+            },
+            {
+              "name": "LAHNumber",
+              "value": "={{ $json.LAHNumber }}"
+            },
+            {
+              "name": "RegoNumber",
+              "value": "={{ $json.RegoNumber }}"
+            },
+            {
+              "name": "AirtableRecordID",
+              "value": "={{ $json.AirtableRecordID }}"
+            },
+            {
+              "name": "TransactionTotal",
+              "value": "={{ $json.TransactionTotal }}"
+            },
+            {
+              "name": "DriveLinks",
+              "value": "={{ $json.DriveLinks }}"
+            },
+            {
+              "name": "InvoicesProcesssed",
+              "value": "={{ $json.InvoicesProcessed }}"
+            },
+            {
+              "name": "Comments",
+              "value": "={{ $json.Comments }}"
+            },
+            {
+              "name": "RB",
+              "value": "={{ $json.RB }}"
+            },
+            {
+              "name": "AI",
+              "value": "={{ $json.AI }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2160,
+        -1952
+      ],
+      "id": "0cf31bcb-417e-4404-aabd-9b6596299770",
+      "name": "Receipt Bank1"
+    },
+    {
+      "parameters": {
+        "operation": "share",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "permissionsUi": {
+          "permissionsValues": {
+            "role": "reader",
+            "type": "anyone",
+            "allowFileDiscovery": true
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -2640,
+        -1952
+      ],
+      "id": "e7031e6a-678f-40f4-9794-d6f2eb7e46b9",
+      "name": "Share file1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CLQ57gssH9rUdFOt",
+          "name": "Developer Google Drive Connection"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ec05cb0e-3abb-4f2a-812d-47ca8624f0cd",
+              "name": "RowNumber",
+              "value": "={{ $('Get row(s) in sheet1').item.json.row_number }}",
+              "type": "string"
+            },
+            {
+              "id": "8fac580c-f2d6-4e3b-b6e2-3aee6dff81ae",
+              "name": "LAHNumber",
+              "value": "={{ $('Extract LAH & Rego Number1').item.json.carUnitNumber }}",
+              "type": "string"
+            },
+            {
+              "id": "11cf906b-9a75-4869-9623-5f127b77ce0f",
+              "name": "RegoNumber",
+              "value": "={{ $('Extract LAH & Rego Number1').item.json.carRegoNumber }}",
+              "type": "string"
+            },
+            {
+              "id": "40370d67-4719-453b-9dda-f9ded7914ef8",
+              "name": "AirtableRecordID",
+              "value": "={{ $('Airtable Update Record1').item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "e6d3e0a3-45b3-494a-a3ea-f059dbc82897",
+              "name": "TransactionTotal",
+              "value": "={{ $('Get row(s) in sheet1').item.json.Cost_Total }}",
+              "type": "string"
+            },
+            {
+              "id": "70239ff2-16a7-4cd5-9126-1364ae82170f",
+              "name": "DriveLinks",
+              "value": "={{ $('Upload file1').item.json.webContentLink }}",
+              "type": "string"
+            },
+            {
+              "id": "da821c13-029a-4ebe-abf2-f731b04e35dd",
+              "name": "InvoicesProcessed",
+              "value": "=",
+              "type": "string"
+            },
+            {
+              "id": "5798bbf6-a536-4c0f-9078-8ce44455a1ad",
+              "name": "Comments",
+              "value": "={{ $('Get row(s) in sheet').item.json.Comments }}",
+              "type": "string"
+            },
+            {
+              "id": "18fbbdaa-c2d3-4e12-83c7-db9990d05ecf",
+              "name": "RB",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "ec662299-90a2-4ed3-8fae-045de25d8e68",
+              "name": "AI",
+              "value": "={{ $('Get row(s) in sheet1').item.json.AI }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2416,
+        -1952
+      ],
+      "id": "acdc37c8-7d16-4a6b-ab50-bad1dd0d8736",
+      "name": "ReceiptBank Data1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -9072,
+        -1424
+      ],
+      "id": "8f33979a-0694-41a0-960c-d9019511ca16",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 200,
+        "simple": false,
+        "filters": {
+          "labelIds": [
+            "Label_5428903063140568803"
+          ]
+        },
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -8880,
+        -1424
+      ],
+      "id": "4ea5cb39-5a58-4577-997c-84d4f01749ed",
+      "name": "Get many messages",
+      "webhookId": "9929e716-2786-4443-bd90-e41a999b3eab",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "7HBylK3vMb0Wisse",
+          "name": "LewisAutoHire"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "If Rows Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update record5": {
+      "main": [
+        []
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Share file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items6": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Search records to update record1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Airtable Update  record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDFco Api1": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Invoice Total",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet1": {
+      "main": [
+        [
+          {
+            "node": "If rows found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create variable for naming convention": {
+      "main": [
+        [
+          {
+            "node": "Extract LAH & Rego Number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records to update record": {
+      "main": [
+        [
+          {
+            "node": "Airtable Update record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable Update record": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable Update  record": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Rows Found": {
+      "main": [
+        [
+          {
+            "node": "Create variable for naming convention",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update record13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Vehicle Folder": {
+      "main": [
+        [
+          {
+            "node": "Find Maintenance Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Maintenance Folder": {
+      "main": [
+        [
+          {
+            "node": "File to upload1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Job ID": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to LlamaParse": {
+      "main": [
+        [
+          {
+            "node": "Get Job ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get LlamaParse Results": {
+      "main": [
+        [
+          {
+            "node": "Airtable Create  Record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable Create  Record": {
+      "main": [
+        [
+          {
+            "node": "Filter invoice (if one or more)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Wait2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send to LlamaParse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter PDFs": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Filter PDFs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records to update record1": {
+      "main": [
+        [
+          {
+            "node": "Airtable Update Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable Update Record": {
+      "main": [
+        [
+          {
+            "node": "Get file to upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Vehicle Folder1": {
+      "main": [
+        [
+          {
+            "node": "Find Maintenance Folder1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Maintenance Folder1": {
+      "main": [
+        [
+          {
+            "node": "File to upload2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If LAH000": {
+      "main": [
+        [
+          {
+            "node": "Update record17",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Find Vehicle Folder1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If LAH": {
+      "main": [
+        [
+          {
+            "node": "Update record5",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Find Vehicle Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create variable for naming convention1": {
+      "main": [
+        [
+          {
+            "node": "Extract LAH & Rego Number1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract LAH & Rego Number": {
+      "main": [
+        [
+          {
+            "node": "Airtable Update record1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract LAH & Rego Number1": {
+      "main": [
+        [
+          {
+            "node": "Airtable Update Record1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable Update record1": {
+      "main": [
+        [
+          {
+            "node": "If LAH",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable Update Record1": {
+      "main": [
+        [
+          {
+            "node": "If LAH000",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If rows found": {
+      "main": [
+        [
+          {
+            "node": "Create variable for naming convention1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update record16",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Invoice Total": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDFco Api": {
+      "main": [
+        [
+          {
+            "node": "Extract page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDFco Api2": {
+      "main": [
+        [
+          {
+            "node": "PDFco Api",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file1": {
+      "main": [
+        [
+          {
+            "node": "Share file1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait2": {
+      "main": [
+        [
+          {
+            "node": "Get LlamaParse Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter invoice (if one or more)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items6",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Search records to update record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get file to upload": {
+      "main": [
+        [
+          {
+            "node": "PDFco Api2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDFco Api3": {
+      "main": [
+        [
+          {
+            "node": "PDFco Api1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "File to upload1": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "File to upload2": {
+      "main": [
+        [
+          {
+            "node": "Upload file1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract page": {
+      "main": [
+        [
+          {
+            "node": "PDFco Api3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Share file": {
+      "main": [
+        [
+          {
+            "node": "ReceiptBank Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ReceiptBank Data": {
+      "main": [
+        [
+          {
+            "node": "Receipt Bank",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Share file1": {
+      "main": [
+        [
+          {
+            "node": "ReceiptBank Data1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ReceiptBank Data1": {
+      "main": [
+        [
+          {
+            "node": "Receipt Bank1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receipt Bank1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get many messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "Filter PDFs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receipt Bank": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6e95147e-9747-4670-9b86-62b531d1bfbd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "839247d7a7a8ed99c1e0d4bb79ab33ace1b57ab029218fcfc4e287b270a1e678"
+  },
+  "id": "Pb5QAeD44vZOa0KD",
+  "tags": []
+}
