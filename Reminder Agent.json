@@ -1,0 +1,372 @@
+{
+  "name": "Reminder Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "pno3Yn1KyK3zjtxq",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/pno3Yn1KyK3zjtxq",
+          "cachedResultName": "Development Team — create_reminder"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {}
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        336,
+        288
+      ],
+      "id": "093d6a22-571c-4ca7-9a21-09b3721801a1",
+      "name": "Call 'create_reminder'"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "qMI00tcvj9WhsQNq",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/qMI00tcvj9WhsQNq",
+          "cachedResultName": "Development Team — edit_reminder"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        528,
+        288
+      ],
+      "id": "e4dc9dc2-37e1-4902-b48c-a3d3f8fc6c52",
+      "name": "Call 'edit_reminder'"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "rB1BWd61DGWBLGgC",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/rB1BWd61DGWBLGgC",
+          "cachedResultName": "Development Team — delete_reminder"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        704,
+        288
+      ],
+      "id": "668ac1ce-6edb-456c-a2ea-4df6baaf24bf",
+      "name": "Call 'delete_reminder'"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message }}\n",
+        "options": {
+          "systemMessage": "=You are the Executive Assistant, an advanced AI productivity system operating through Telegram.\n\nYour responsibilities:\n- Understand the user’s intent\n- Collect all required fields\n- Call the correct reminder tool ONLY when all requirements are satisfied\n- After the tool responds, return a natural, friendly explanation\n\n===================================================\n1. INTENT CLASSIFICATION\n===================================================\nEvery user message MUST be classified as exactly one of:\n\n1. create_reminder\n2. edit_reminder\n3. delete_reminder\n4. list_reminders\n\nIf intent is unclear → ask ONE clarifying question.\n\n===================================================\n2. CREATE REMINDER — REQUIRED FIELDS\n===================================================\nBefore calling create_reminder, you MUST collect:\n\n- title\n- content\n- due_date (ISO: YYYY-MM-DDTHH:mm)\n- priority (High, Medium, Low)\n- recurring (None, Daily, Weekly, Monthly, Custom)\n- recurrence_rule (required if recurring = Custom)\n- status\n\nNever assume missing details.\n\nPriority rules:\n- “urgent”, “asap”, “important” → High\n- “whenever”, “no rush” → Low\n- Otherwise → Medium\n\nDate rules:\n- Convert natural language dates into ISO format\n- If time is missing, ask for it\n- Never guess\n\n===================================================\n3. EDIT REMINDER — REQUIRED\n===================================================\nTo call edit_reminder, you MUST have:\n- the title\n- at least ONE field to update\n\nIf unclear → ask the user.\n\n===================================================\n4. DELETE REMINDER — REQUIRED\n===================================================\nTo call delete_reminder, you MUST have the title.\n\nIf missing → ask: “Which reminder should I delete?”\n\n===================================================\n5. LIST REMINDERS — RULES\n===================================================\nKeyword mapping:\n- “today” → DueToday\n- “tomorrow” → DueTomorrow\n- “completed” → Completed\n- “all” → All\n- “cancelled” → Cancelled\n- No keyword → Pending\n\nCall list_reminders ONLY when user intent is to list.\n\n===================================================\n6. TOOL CALL RULES (STRICT)\n===================================================\n- NEVER call a tool until ALL required fields are collected.\n- NEVER invent missing information.\n- When calling a tool, output ONLY the callTool() statement.\n- DO NOT add any text before or after the callTool() line.\n- Tool function names must contain ONLY letters, numbers, or underscores.\n  (Allowed: create_reminder, edit_reminder, delete_reminder, list_reminders)\n\nCorrect tool call formats:\n\ncreate_reminder:\ncallTool(\"create_reminder\", {\n  \"title\": title,\n  \"content\": content,\n  \"due_date\": due_date,\n  \"priority\": priority,\n  \"recurring\": recurring,\n  \"recurrence_rule\": recurrence_rule,\n  \"status\": status\n})\n\nedit_reminder:\ncallTool(\"edit_reminder\", {\n  \"title\": title,\n  \"content\": content,\n  \"due_date\": due_date,\n  \"priority\": priority,\n  \"recurring\": recurring,\n  \"recurrence_rule\": recurrence_rule,\n  \"status\": status\n})\n\ndelete_reminder:\ncallTool(\"delete_reminder\", {\n  \"title\": title\n})\n\nlist_reminders:\ncallTool(\"list_reminders\", {})\n\n===================================================\n7. AFTER TOOL RESPONSES\n===================================================\nAfter receiving JSON from a tool:\n\n- NEVER repeat or show the JSON\n- NEVER reveal tool mechanics\n- Respond naturally and professionally\n\nCreation response example:\n“Your reminder has been created successfully!  \nHere are the details:  \n• Title: …  \n• Due: …  \n• Priority: …  \nYou can view it here: <notion_url>”\n\nEdit response:\n“Your reminder has been updated.  \nHere’s what changed: …  \nView it here: <notion_url>”\n\nDelete response:\n“The reminder has been deleted.  \nIf you need to restore it, here’s the link: <notion_url>”\n\nList response:\n“Here are your reminders:  \n1. …  \n2. …”\n\n===================================================\n8. COMMUNICATION RULES\n===================================================\n• Speak naturally and professionally  \n• Ask one clarification question at a time  \n• Maintain memory within this conversation  \n• Never reveal chain-of-thought  \n• ALWAYS follow tool rules strictly  \n\n===================================================\nSTRICT TOOL NAME RULE\n===================================================\nYou may ONLY call the following tools, and ONLY with these exact names:\n\n- create_reminder\n- edit_reminder\n- delete_reminder\n- list_reminders\n\nThese names MUST match exactly, character-for-character.\n\nABSOLUTE RESTRICTIONS:\n- Never include spaces in function names.\n- Never include hyphens unless explicitly in the allowed names.\n- Never include capital letters unless explicitly in the allowed names.\n- Never create or invent new tool names.\n- Never output an empty string or placeholder as the tool name.\n- Never output function names such as \"create reminder\", \"create-reminder\", \"Create Reminder\", \"Reminder Agent\", or any other variation.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        400,
+        0
+      ],
+      "id": "2061760f-f2d5-4a64-9a7b-d19e829ceadd",
+      "name": "Understand message intent"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -480,
+        0
+      ],
+      "id": "c3c7d933-19b8-4a05-9487-8f670e2a66ed",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "l48H1386qYEaig61",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/l48H1386qYEaig61",
+          "cachedResultName": "Development Team — list_reminders"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        288
+      ],
+      "id": "a80fc77d-5736-4c3a-9c7a-e88aa48748e9",
+      "name": "Call 'list_reminders'"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -528,
+        192
+      ],
+      "id": "14279cbe-a6f1-4592-af7d-f508253bf69a",
+      "name": "Test Chat",
+      "webhookId": "6d9b2866-c1f7-448c-997a-0df36d492865"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6e36f260-82f1-42c4-a371-590e52577fd4",
+              "name": "msg",
+              "value": "={{ $json.chatInput || $json.text || ($json.message && $json.message.text) }}",
+              "type": "string"
+            },
+            {
+              "id": "abc812d1-398a-44de-a7d5-23c10c386788",
+              "name": "sessionID",
+              "value": "={{ $json.sessionId || ($json.message && $json.message.chat && $json.message.chat.id) || ($('Telegram Trigger1').item.json.message && $('Telegram Trigger1').item.json.message.chat && $('Telegram Trigger1').item.json.message.chat.id) }}",
+              "type": "string"
+            },
+            {
+              "id": "79e5abd8-60c4-4711-beae-d8a570263566",
+              "name": "Name",
+              "value": "={{ $json.sessionId ? 'Test User' : (($json.message && $json.message.chat) ? ($json.message.chat.first_name + ' ' + $json.message.chat.last_name) : (($('Telegram Trigger1').item.json.message && $('Telegram Trigger1').item.json.message.chat) ? ($('Telegram Trigger1').item.json.message.chat.first_name + ' ' + $('Telegram Trigger1').item.json.message.chat.last_name) : 'Unknown')) }}",
+              "type": "string"
+            },
+            {
+              "id": "116316ef-9363-40a6-b4a0-a586f6d0f653",
+              "name": "test?",
+              "value": "={{ $if($('Test Chat').isExecuted, 'true', 'false') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -272,
+        192
+      ],
+      "id": "5c2107ab-ed0f-4f92-bb2b-97583289418f",
+      "name": "Set Message & Session",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = [];\n\nfor (const item of $input.all()) {\n    const query = $input.first().json.query || \"\";\n    let sessionId = null;\n    let message = null;\n\n    // 1) TRY to parse as JSON first (if user sends JSON-like string)\n    try {\n        const parsed = JSON.parse(query);\n\n        sessionId = parsed.session_id || parsed.sessionId || null;\n        message = parsed.message || parsed.msg || null;\n    } catch (err) {\n        // 2) Not JSON → Parse free-form text using regex\n        const sessionRegex = /session[_\\s]*id[:=\\s]+([a-zA-Z0-9_-]+)/i;\n        const messageRegex = /(?:user'?s? message|message)[:=\\s]+(.+)/i;\n\n        const sessionMatch = query.match(sessionRegex);\n        const messageMatch = query.match(messageRegex);\n\n        if (sessionMatch) sessionId = sessionMatch[1].trim();\n        if (messageMatch) message = messageMatch[1].trim();\n    }\n\n    // 3) Push n8n-compatible item\n    results.push({\n        json: {\n            session_id: sessionId,\n            message: message\n        }\n    });\n}\n\nreturn results;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        0
+      ],
+      "id": "13070ef5-c0cb-406c-8b01-0f757f98342a",
+      "name": "Extract sessionid and message"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "gpt-4"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        16,
+        272
+      ],
+      "id": "8c5fa2ec-7b35-4d85-9677-6a334b28e23e",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "VPPatuvqxQRYGlVi",
+          "name": "Working Capital Finance"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Extract sessionid and message').item.json.session_id }}",
+        "contextWindowLength": 15
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        192,
+        256
+      ],
+      "id": "4eb9456a-b68a-4bf3-9de4-9d4762e15fe8",
+      "name": "Simple Memory"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Call 'create_reminder'": {
+      "ai_tool": [
+        [
+          {
+            "node": "Understand message intent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'edit_reminder'": {
+      "ai_tool": [
+        [
+          {
+            "node": "Understand message intent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'delete_reminder'": {
+      "ai_tool": [
+        [
+          {
+            "node": "Understand message intent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Extract sessionid and message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'list_reminders'": {
+      "ai_tool": [
+        [
+          {
+            "node": "Understand message intent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Chat": {
+      "main": [
+        [
+          {
+            "node": "Set Message & Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Message & Session": {
+      "main": [
+        [
+          {
+            "node": "Understand message intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract sessionid and message": {
+      "main": [
+        [
+          {
+            "node": "Understand message intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Understand message intent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Understand message intent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0415b079-9d42-4f2e-8ed9-b56bea040a65",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "839247d7a7a8ed99c1e0d4bb79ab33ace1b57ab029218fcfc4e287b270a1e678"
+  },
+  "id": "vawn6LRuddhvMErB",
+  "tags": []
+}

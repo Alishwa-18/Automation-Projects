@@ -1,0 +1,201 @@
+{
+  "name": "list_reminders",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -224,
+        0
+      ],
+      "id": "a75839e9-17f2-4db5-b775-e9ab820ea735",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "2b7d90a6-90a7-80db-8dc9-ef892e70e785",
+          "mode": "list",
+          "cachedResultName": "General Reminder System",
+          "cachedResultUrl": "https://www.notion.so/2b7d90a690a780db8dc9ef892e70e785"
+        },
+        "limit": 1,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Status|select",
+              "condition": "equals",
+              "selectValue": "={{ $json.status }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        512,
+        -96
+      ],
+      "id": "b5641223-e82d-4888-8696-1c11c6744da7",
+      "name": "Get many database pages",
+      "credentials": {
+        "notionApi": {
+          "id": "bI5ntlPxhyRJaF7Q",
+          "name": "Notion account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Raw input (n8n gives this as an array of items)\nconst raw = items[0].json.query;\n\n// STEP 1: Parse the inner JSON string safely\nlet parsed = {};\ntry {\n  parsed = JSON.parse(raw);\n} catch (e) {\n  throw new Error(\"Invalid JSON in query field: \" + raw);\n}\n\n// STEP 2: Extract useful fields\nconst action = parsed.action || null;\nconst params = parsed.parameters || {};\n\nconst status = params.status || null;\nconst due_date = params.due_date || null;\n\n// STEP 3: Return a clean object\nreturn [\n  {\n    json: {\n      action,\n      status,\n      due_date,\n      parameters: params\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        0
+      ],
+      "id": "311e94f7-a0f3-4a98-8c10-c28e5cad4f27",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a6aa8107-6885-4a64-82e6-92c451758e94",
+              "leftValue": "={{ $json.parameters.status }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        240,
+        0
+      ],
+      "id": "b21a4606-fd64-4a7d-8555-2efc82a7b8db",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "2b7d90a6-90a7-80db-8dc9-ef892e70e785",
+          "mode": "list",
+          "cachedResultName": "General Reminder System",
+          "cachedResultUrl": "https://www.notion.so/2b7d90a690a780db8dc9ef892e70e785"
+        },
+        "limit": 1,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Status|select",
+              "condition": "equals",
+              "selectValue": "={{ $json.status }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        512,
+        128
+      ],
+      "id": "5bd6bae4-1979-442d-8db4-77f155141772",
+      "name": "Get many database pages1",
+      "credentials": {
+        "notionApi": {
+          "id": "bI5ntlPxhyRJaF7Q",
+          "name": "Notion account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many database pages": {
+      "main": [
+        []
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Get many database pages",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get many database pages1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "208c450c-c3d7-4292-b887-0412b2904dfe",
+  "meta": {
+    "instanceId": "283397b980e209216969f4f25094b2758b7b470a9c4d049e94293dfa68614f79"
+  },
+  "id": "Hv3aoCuodA4Hh94K",
+  "tags": []
+}

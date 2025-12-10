@@ -1,0 +1,801 @@
+{
+  "name": "2.3 Master Agent V3",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "7333316728 - Jesie telegram chat ID\n\n7856199267 -  Harvey telegram chat ID\n\n8386615610 - Paul telegram chat ID",
+        "height": 176,
+        "width": 208
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1312,
+        352
+      ],
+      "typeVersion": 1,
+      "id": "13961a6c-4c5e-4a14-b9ea-409a1417f821",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User's Name: {{ $json.Name }}\nUser's Message: {{ $json.msg }}\nButtons: {{ $json.Buttons }}\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are the Executive Assistant for {{ $json.Name }}, a highly skilled AI agent with over 15 years of experience in autonomous systems and enterprise automation. Your primary role is to manage tasks and provide information through a specialized Telegram Bot interface. You are conversational, interpret user needs accurately, and leverage your available tools to fulfill requests.\n\n\nYour Command Roster includes:\n\n\n### Request Latest Email Summary tool\n* Use this command when the user requests to:\n     - Request latest email summary\n* RULES: \n- Call 'Request latest email summary',\n- Do not modify, summarize, or reformat the output.\n- Do not mention anything about the tool or Telegram in the output.\n- Do not ask or add any follow-up questions in the output.\n- Always include  the output together with the clickable 'View Summary Report' link in the output. The link must be rendered as a clickable Markdown hyperlink (supported in Telegram, n8n, and most platforms).\n- Do NOT ask for clarification, do NOT request tools, and do NOT output \"CALL TO ACTION REQUIRED\" or any similar message. Always move directly to the next step and return the full result.\n\n### Help Command\n* Use this command if the user greets you without prior interaction, says 'help,' or asks about your capabilities.\n* To execute: List all commands in the roster, describe their function, and provide 3 example user phrases for each. Do not invent commands.\n\n\n### Task Management Agent\n\nWhen a user expresses intent to create, search, manage batches, update status, or edit tasks, you will interface with the integrated Telegram Bot. This bot handles the direct execution of these specific task-related functions.\n\n\n* Use this command when the user requests to:\n    - Create a new task\n    - Search for existing tasks\n    - Check task status\n    - Manage task batches\n    - Edit an existing task\n* To execute: Relay the user's specific request to the integrated Task Management Agent for processing. You will act as the intermediary, ensuring the bot receives the correct instruction based on the user's conversational input.\n\nAlways maintain a professional and formal interaction style. Your autonomy level is set to 0.6, allowing for independent interpretation and tool selection, but ensuring that task management functions are delegated to the Task Management Agent as specified. The current time is {{ $now }}.\n\n### Booking Modification Flow V1 (Messages Only)\nUse this tool ONLY when the user expresses intent to modify appointment, including when they:\n- Provide a new date (e.g., \"Wednesday\", \"next Monday\", \"the 15th\")\n- Provide a new time (e.g., \"9am\", \"3pm\", \"14:00\")\n- Provide a combined date/time (e.g., \"Friday 9pm\", \"tomorrow at 11\")\n- Say things like \"modify it\", \"change the time\", \"reschedule\", \"yes, change it\", etc.\n\nWhen you call this tool, you MUST send a JSON object with a single field:\n\n{\n  \"message\": \"<the user's exact text about the change>\"\n}\n\nRules:\n- \"message\" MUST be the user's raw text EXACTLY as they typed it (e.g., \"friday 9pm\").\n- Do NOT rephrase, summarize, interpret, or change the wording, time, or date.\n- Do NOT add anything extra to the message.\n- Do NOT call this tool with an empty JSON object {}.\n- Do NOT call this tool if \"message\" would be empty, null, or undefined.\n\nExamples:\n\nUser: \"Friday 9pm\"\n→ Tool call:\n{\"message\":\"Friday 9pm\"}\n\nUser: \"Let's move it to next Monday at 3pm\"\n→ Tool call:\n{\"message\":\"Let's move it to next Monday at 3pm\"}\n\nUser: \"Change it to 14:00 tomorrow\"\n→ Tool call:\n{\"message\":\"Change it to 14:00 tomorrow\"}\n\nIf the user first says a date/time (e.g., \"Friday 9pm\") and later says \"yes modify it\", you should use the most recent full date/time text they gave. If you are not sure what date/time they mean, ask a clarifying question instead of calling the tool.\n\n\n\n### Reminder Agent\n\n* Use this command when the user expresses intent to:\n    - Create a reminder\n    - Edit a reminder\n    - Delete a reminder\n    - List reminders\n    - Anything involving “remind me…”, reminders, notifications, follow-ups, or due dates\n\n* RULES:\n- Immediately call the **Reminder Agent tool** with the user's full request exactly as provided.\n- Do NOT interpret, collect fields, rewrite, summarize, or alter the user’s message.\n- Do NOT ask clarifying questions. The Reminder Agent handles all reminder processing.\n- When the Reminder Agent returns output:\n    • Return that output to the user **exactly as received**.  \n    • No changes, no formatting edits, no summaries, no commentary.\n- Do NOT mention the tool, internal logic, or the Reminder Agent in your response.\n\n\n### Snooze Handler Buttons\nUse this command ONLY when the input contains a button value (Buttons) matching EXACTLY one of:\n\n- snooze_15m\n- snooze_1h\n- snooze_4h\n- dismiss\n\nWhen you call this command, you MUST send a JSON object with BOTH fields:\n\n{\n  \"button\": \"<exact Buttons value>\",\n  \"message\": \"<exact msg value>\"\n}\n\n- \"button\" MUST be exactly the value of {{ $json.Buttons }}\n- \"message\" MUST be exactly the value of {{ $json.msg }}\n- You MUST NOT change, interpret, add to, or summarize either field.\n- You MUST NOT call this tool if Buttons or msg is missing, null, or empty.\n\nExamples of exact payloads you must send:\n- If Buttons = snooze_15m, msg = please remind me later → send:\n  {\"button\":\"snooze_15m\",\"message\":\"please remind me later\"}\n\nYou are STRICTLY FORBIDDEN from calling Snooze Handler with:\n- an empty JSON object {}\n- missing \"button\" or \"message\"\n- \"button\" or \"message\" set to \"\", null, or undefined.\n\n\n### Booking Modification Buttons\nUse this command ONLY when the input contains a button value (Buttons) matching EXACTLY one of:\n\n- Slot_1\n- Slot_2\n- Slot_3\n- Cancelled_rescheduling\n- approve_meeting\n- reject_meeting\n- modify_meeting\n\nWhen you call this command, you MUST send a JSON object with BOTH fields:\n\n{\n  \"button\": \"<exact Buttons value>\",\n  \"message\": \"<exact msg value>\"\n}\n\n- \"button\" MUST be exactly the value of {{ $json.Buttons }}\n- \"message\" MUST be exactly the value of {{ $json.msg }}\n- You MUST NOT change, interpret, add to, or summarize either field.\n- You MUST NOT call this tool if Buttons or msg is missing, null, or empty.\n\nExamples of exact payloads you must send:\n- If Buttons = modify_meeting, msg = Wednesday 9pm → send:\n  {\"button\":\"modify_meeting\",\"message\":\"Wednesday 9pm\"}\n\nYou are STRICTLY FORBIDDEN from calling Booking Flow V1 with:\n- an empty JSON object {}\n- missing \"button\" or \"message\"\n- \"button\" or \"message\" set to \"\", null, or undefined.\n\n\n### Global Rules for Button Tools\n\n- NEVER call both tools at the same time.\n- If Buttons does NOT match any of the values above, DO NOT call these tools.\n- If msg is not present, DO NOT call these tools.\n- These tools are pure pass-through: you only forward the exact button and message; you do NOT interpret, modify, or summarize them.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        768,
+        224
+      ],
+      "id": "79b0f846-595d-41a8-a0be-df7f55e7b76c",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Set Message & Session').item.json.sessionID }}",
+        "text": "={{ $('AI Agent1').item.json.output }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1824,
+        256
+      ],
+      "id": "5bc279bd-d429-4ef7-9205-95cabc59807a",
+      "name": "Send Back To Telegram1",
+      "webhookId": "3779eaf0-9029-472e-82de-c5e5b6d1a20d",
+      "credentials": {
+        "telegramApi": {
+          "id": "EFWPdkrPgU3pJkvs",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "4a0eb33d-b326-4976-8b3f-368dec5cae20",
+              "leftValue": "={{ $json.message.voice }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -320,
+        144
+      ],
+      "id": "62ef8c06-f4dd-41e8-b186-9b530921d106",
+      "name": "Check message type1"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -128,
+        -32
+      ],
+      "id": "106d5298-fb98-4e4c-a298-9530e55fa6e2",
+      "name": "Get Voice File1",
+      "webhookId": "ca84d97e-8494-4890-9883-88b9d0e22da3",
+      "credentials": {
+        "telegramApi": {
+          "id": "EFWPdkrPgU3pJkvs",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -80,
+        368
+      ],
+      "id": "803f5806-31c2-4590-bbde-9843a61041ba",
+      "name": "Test Chat",
+      "webhookId": "6d9b2866-c1f7-448c-997a-0df36d492865"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -880,
+        720
+      ],
+      "id": "f654c265-ef5e-432e-8021-2828a378d142",
+      "name": "Error Trigger",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "chatId": "7333316728",
+        "text": "={{ $json.execution.error.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -608,
+        720
+      ],
+      "id": "de697da6-38ce-44d4-86c4-159d1c84cd87",
+      "name": "Send Error Message",
+      "webhookId": "483d481d-43c6-49c0-9900-59f6fc7b2a3b",
+      "credentials": {
+        "telegramApi": {
+          "id": "EFWPdkrPgU3pJkvs",
+          "name": "Telegram account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f3f44670-b23d-4ab1-be67-a5310d775f1f",
+              "leftValue": "={{ $('Set Message & Session').item.json['test?'] }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1296,
+        224
+      ],
+      "id": "00d08f6a-a907-4d33-8b91-19efd4e2d352",
+      "name": "Testing?"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionID }}",
+        "contextWindowLength": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        704,
+        448
+      ],
+      "id": "3eb101f9-65ae-43d4-b754-56b33a434ea1",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.1",
+          "mode": "list",
+          "cachedResultName": "gpt-5.1"
+        },
+        "options": {
+          "maxTokens": 250
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        576,
+        448
+      ],
+      "id": "8a756d93-031e-4061-a4da-8a9074959aba",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "VPPatuvqxQRYGlVi",
+          "name": "Working Capital Finance"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6e36f260-82f1-42c4-a371-590e52577fd4",
+              "name": "msg",
+              "value": "={{ $json.chatInput || $json.text || ($json.message && $json.message.text) || $json.callback_query.message.text }} ",
+              "type": "string"
+            },
+            {
+              "id": "abc812d1-398a-44de-a7d5-23c10c386788",
+              "name": "sessionID",
+              "value": "={{ $json.sessionId || ($json.message && $json.message.chat && $json.message.chat.id) || ($('Telegram Trigger1').item.json.message && $('Telegram Trigger1').item.json.message.chat && $('Telegram Trigger1').item.json.message.chat.id) || $json.callback_query.from.id}}",
+              "type": "string"
+            },
+            {
+              "id": "79e5abd8-60c4-4711-beae-d8a570263566",
+              "name": "Name",
+              "value": "={{ $json.sessionId ? 'Test User' : (($json.message && $json.message.chat) ? ($json.message.chat.first_name + ' ' + $json.message.chat.last_name) : (($('Telegram Trigger1').item.json.message && $('Telegram Trigger1').item.json.message.chat) ? ($('Telegram Trigger1').item.json.message.chat.first_name + ' ' + $('Telegram Trigger1').item.json.message.chat.last_name) : 'Unknown')) }}",
+              "type": "string"
+            },
+            {
+              "id": "116316ef-9363-40a6-b4a0-a586f6d0f653",
+              "name": "test?",
+              "value": "={{ $if($('Test Chat').isExecuted, 'true', 'false') }}",
+              "type": "string"
+            },
+            {
+              "id": "5d9db029-8340-45b7-9a62-4c26ea617f55",
+              "name": "Buttons",
+              "value": "={{ $json.callback_query.data || null }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        352,
+        224
+      ],
+      "id": "cf0a9e9d-b6a9-448d-8998-f8c17ee3a62f",
+      "name": "Set Message & Session",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "description": "Call this tool to get latest email summary.",
+        "workflowId": {
+          "__rl": true,
+          "value": "DxKuqwiCRn4TgfEf",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/DxKuqwiCRn4TgfEf",
+          "cachedResultName": "Development Team — 2.2 Main Agent Tool: Request latest email summary v2 (P)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        832,
+        512
+      ],
+      "id": "81b69996-1152-414a-abb3-0fe9635f38f3",
+      "name": "Call '2.2 Main Agent Tool: Request latest email summary v2 (P)'",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "mYFg6t6Ely7OrLnx",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/mYFg6t6Ely7OrLnx",
+          "cachedResultName": "Development Team — Booking Modification Flow V1"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1008,
+        528
+      ],
+      "id": "7d933049-8862-4925-a7b3-1d3accd85ec5",
+      "name": "Call 'Booking Modification Flow V1'"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5601e6f2-4f94-40aa-9abb-24c46aa93aee",
+              "leftValue": "={{ $json.sendMessage }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "17729891-b5ff-430c-959e-d01dad40a9dc",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1728,
+        -128
+      ],
+      "id": "9687aefa-1100-47ab-8534-0eab0c19326e",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "// INPUT: agentOutput = string from your AI agent\nconst agentOutput = $json.output || \"\";  \n\n// Convert to lowercase for safe matching\nconst text = agentOutput.toLowerCase();\n\n// Conditions to block sending message\nconst hasSlot = text.includes(\"slot 1\") \n             || text.includes(\"slot 2\") \n             || text.includes(\"slot 3\")\n             || text.includes(\"slot\");   // generic slot check\n\nconst hasMeetingApproval = text.includes(\"meeting approval\");\n\n// FINAL DECISION\nif (hasSlot || hasMeetingApproval) {\n  return {\n    sendMessage: false,\n    reason: \"Contains slot or meeting approval text.\"\n  };\n}\n\nreturn {\n  sendMessage: true,\n  reason: \"No slot or meeting approval found.\"\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1456,
+        -160
+      ],
+      "id": "a0e36143-e227-4123-89d9-8a4cfc6dbc55",
+      "name": "Check approval and slots"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message",
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -560,
+        144
+      ],
+      "id": "a0aad1f5-0b50-4d2e-bbff-4e852df73a66",
+      "name": "Telegram Trigger1",
+      "webhookId": "da33fa8c-9b54-49b3-b902-5594a8d7caaf",
+      "credentials": {
+        "telegramApi": {
+          "id": "rwXo3DnQg4JfETW0",
+          "name": "GA_TELEGRAM_BOT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "44DyBuGVvODuJHGg",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/44DyBuGVvODuJHGg",
+          "cachedResultName": "Development Team — Task Management Agent"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1408,
+        560
+      ],
+      "id": "ba01e53c-0dbb-4093-8cb5-db680fdbea63",
+      "name": "Call 'Task Management Agent'"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "vawn6LRuddhvMErB",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/vawn6LRuddhvMErB",
+          "cachedResultName": "Development Team — Reminder Agent"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1264,
+        576
+      ],
+      "id": "8bd69223-64b1-425f-89c5-db57f5c0b646",
+      "name": "Call 'Reminder Agent'"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1184,
+        80
+      ],
+      "id": "16165651-a7a3-47fa-8978-b9ec33bf698c",
+      "name": "Telegram Trigger(Callback)1",
+      "webhookId": "45550027-1ea6-41d2-95a0-550284d6b8aa",
+      "credentials": {
+        "telegramApi": {
+          "id": "rwXo3DnQg4JfETW0",
+          "name": "GA_TELEGRAM_BOT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "Xe2cjpL4ZVONWSur",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/Xe2cjpL4ZVONWSur",
+          "cachedResultName": "Development Team — Snooze Handler"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        672
+      ],
+      "id": "c723a405-a7b0-453e-a5be-ba049e1862c9",
+      "name": "Call 'Snooze Handler'"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a98d54db-0fd9-4cba-b9e7-af80202543f1",
+              "leftValue": "={{ $('Set Message & Session').item.json.Buttons }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1552,
+        240
+      ],
+      "id": "d37fc381-7d71-4d58-937e-57b4bf80205f",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "lAB01bprO7WDo3qo",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/lAB01bprO7WDo3qo",
+          "cachedResultName": "Development Team — Booking Flow V1(P)"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1152,
+        672
+      ],
+      "id": "0738bed9-1ed6-41d6-b8b5-6596c8008cc4",
+      "name": "Call 'Booking Flow V1(P)'"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AI Agent1": {
+      "main": [
+        []
+      ]
+    },
+    "Check message type1": {
+      "main": [
+        [
+          {
+            "node": "Get Voice File1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Message & Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test Chat": {
+      "main": [
+        [
+          {
+            "node": "Set Message & Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send Error Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Testing?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Message & Session": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call '2.2 Main Agent Tool: Request latest email summary v2 (P)'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Booking Modification Flow V1'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        []
+      ]
+    },
+    "Check approval and slots": {
+      "main": [
+        []
+      ]
+    },
+    "Call 'Task Management Agent'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Reminder Agent'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger(Callback)1": {
+      "main": [
+        []
+      ]
+    },
+    "Telegram Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Check message type1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Snooze Handler'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Send Back To Telegram1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Booking Flow V1(P)'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "999af431-3731-47f2-aa29-50314e5d6f9a",
+  "meta": {
+    "instanceId": "839247d7a7a8ed99c1e0d4bb79ab33ace1b57ab029218fcfc4e287b270a1e678"
+  },
+  "id": "GHPk9lFUCcalxJ1D",
+  "tags": []
+}

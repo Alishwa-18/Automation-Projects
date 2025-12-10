@@ -1,0 +1,135 @@
+{
+  "name": "create_reminder",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -304,
+        0
+      ],
+      "id": "e2bbfcb8-c248-4858-bcc1-6a1b16cba927",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse JSON coming from main agent\nconst data = JSON.parse(items[0].json.query);\n\n// Helper: detect whether input already includes an Australian timezone offset\nfunction isSydneyTimezone(dateStr) {\n\treturn dateStr.includes(\"+10:00\") || \n\t       dateStr.includes(\"+11:00\") ||\n\t       dateStr.toUpperCase().includes(\"AEST\") ||\n\t       dateStr.toUpperCase().includes(\"AEDT\");\n}\n\n// Convert any date into an ISO string in Australia/Sydney timezone\nfunction convertToSydney(dateStr) {\n\t// Convert input → Date object\n\tconst d = new Date(dateStr);\n\n\t// Rebuild in Australia/Sydney timezone\n\tconst dt = new Date(\n\t\tIntl.DateTimeFormat(\"en-AU\", {\n\t\t\ttimeZone: \"Australia/Sydney\",\n\t\t\tyear: \"numeric\",\n\t\t\tmonth: \"2-digit\",\n\t\t\tday: \"2-digit\",\n\t\t\thour: \"2-digit\",\n\t\t\tminute: \"2-digit\",\n\t\t\tsecond: \"2-digit\",\n\t\t\thour12: false,\n\t\t})\n\t\t\t.format(d)\n\t\t\t.replace(\n\t\t\t\t/(\\d+)\\/(\\d+)\\/(\\d+), (\\d+):(\\d+):(\\d+)/,\n\t\t\t\t\"$3-$2-$1T$4:$5:$6\"\n\t\t\t)\n\t);\n\n\t// Return ISO string with Australia/Sydney offset\n\treturn dt.toISOString();\n}\n\nlet finalDueDate = null;\n\n// Only process due_date if present\nif (data.due_date) {\n\tconst raw = data.due_date;\n\n\tif (isSydneyTimezone(raw)) {\n\t\t// Already Australian timezone → keep it\n\t\tfinalDueDate = new Date(raw).toISOString();\n\t} else {\n\t\t// Convert to Australia/Sydney timezone\n\t\tfinalDueDate = convertToSydney(raw);\n\t}\n}\n\n// Output clean structured object\nreturn [\n\t{\n\t\tjson: {\n\t\t\tintent: data.intent,\n\t\t\ttitle: data.title,\n\t\t\tcontent: data.content,\n\t\t\tdue_date: finalDueDate,\n\t\t\tpriority: data.priority,\n\t\t\trecurring: data.recurring,\n\t\t\trecurrence_rule: data.recurrence_rule,\n\t\t\tsource: data.source,\n\t\t\trelated_task: data.related_task,\n\t\t\trelated_project: data.related_project,\n\t\t\tadditional_kwargs: data.additional_kwargs ?? {},\n\t\t},\n\t},\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        0
+      ],
+      "id": "8a548644-e184-4031-b3d2-9b3818b1929e",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "2b7d90a6-90a7-80db-8dc9-ef892e70e785",
+          "mode": "list",
+          "cachedResultName": "General Reminder System",
+          "cachedResultUrl": "https://www.notion.so/2b7d90a690a780db8dc9ef892e70e785"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Content|rich_text",
+              "textContent": "={{ $json.content }}"
+            },
+            {
+              "key": "Due Date|date",
+              "date": "={{ $json.due_date }}",
+              "timezone": "Australia/Sydney"
+            },
+            {
+              "key": "Priority |select",
+              "selectValue": "={{ $json.priority }}"
+            },
+            {
+              "key": "Source|select",
+              "selectValue": "={{ $json.source }}"
+            },
+            {
+              "key": "Recurring|select",
+              "selectValue": "={{ $json.recurring }}"
+            },
+            {
+              "key": "Title |title",
+              "title": "={{ $json.title }}"
+            },
+            {
+              "key": "Recurrence Rule|rich_text",
+              "textContent": "={{ $json.recurrence_rule }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        176,
+        0
+      ],
+      "id": "1d52c061-148e-4e4c-9637-ea9fca2524bd",
+      "name": "Create a database page",
+      "credentials": {
+        "notionApi": {
+          "id": "bI5ntlPxhyRJaF7Q",
+          "name": "Notion account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "{\"intent\":\"create_reminder\",\"title\":\"Pay electricity bill\",\"content\":\"Before midnight\",\"due_date\":\"2025-02-08T22:00:00\",\"priority\":\"High\",\"recurring\":\"None\",\"recurrence_rule\":\"\",\"source\":\"Telegram\",\"related_task\":\"\",\"related_project\":\"\",\"additional_kwargs\":{},\"response_metadata\":{}}"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Create a database page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5a4082f6-520e-4e59-a49b-9c9fd86a435f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "283397b980e209216969f4f25094b2758b7b470a9c4d049e94293dfa68614f79"
+  },
+  "id": "pno3Yn1KyK3zjtxq",
+  "tags": []
+}

@@ -1,0 +1,127 @@
+{
+  "name": "delete_reminder",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -304,
+        16
+      ],
+      "id": "3437b37c-6ee5-42b3-b341-1b41e8b5d97a",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|select",
+              "selectValue": "Cancelled"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        208,
+        16
+      ],
+      "id": "6352bd50-56e2-41eb-b68c-a47635527cba",
+      "name": "Update a database page",
+      "credentials": {
+        "notionApi": {
+          "id": "bI5ntlPxhyRJaF7Q",
+          "name": "Notion account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "2b7d90a6-90a7-80db-8dc9-ef892e70e785",
+          "mode": "list",
+          "cachedResultName": "General Reminder System",
+          "cachedResultUrl": "https://www.notion.so/2b7d90a690a780db8dc9ef892e70e785"
+        },
+        "limit": 1,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Title |title",
+              "condition": "equals",
+              "titleValue": "={{ $json.query }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -48,
+        16
+      ],
+      "id": "b641e15e-c6c9-489c-864f-5bd44aa21195",
+      "name": "Get many database pages",
+      "credentials": {
+        "notionApi": {
+          "id": "bI5ntlPxhyRJaF7Q",
+          "name": "Notion account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get many database pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many database pages": {
+      "main": [
+        [
+          {
+            "node": "Update a database page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3ec3c918-5f11-4255-965f-51a2c35725bd",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "283397b980e209216969f4f25094b2758b7b470a9c4d049e94293dfa68614f79"
+  },
+  "id": "sc3SLR43dM3D9BCS",
+  "tags": []
+}

@@ -1,0 +1,279 @@
+{
+  "name": "edit_reminder",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -544,
+        -16
+      ],
+      "id": "5e377738-584d-4301-bc62-db5fe26967fe",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "2b7d90a6-90a7-80db-8dc9-ef892e70e785",
+          "mode": "list",
+          "cachedResultName": "General Reminder System",
+          "cachedResultUrl": "https://www.notion.so/2b7d90a690a780db8dc9ef892e70e785"
+        },
+        "limit": 1,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Title |title",
+              "condition": "equals",
+              "titleValue": "="
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -96,
+        -16
+      ],
+      "id": "90067ea4-eb84-41c8-8ed2-d29d12537f64",
+      "name": "Get many database pages",
+      "credentials": {
+        "notionApi": {
+          "id": "bI5ntlPxhyRJaF7Q",
+          "name": "Notion account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "dacd40ff-5582-4ce8-838d-4a692293726c",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        352,
+        -16
+      ],
+      "id": "0a396fa6-e6c6-4020-8636-6033934ca572",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Content|rich_text",
+              "textContent": "={{ $json.content }}"
+            },
+            {
+              "key": "Due Date|date",
+              "date": "={{ $json.due_date }}",
+              "timezone": "Australia/Sydney"
+            },
+            {
+              "key": "Priority |select",
+              "selectValue": "={{ $json.priority }}"
+            },
+            {
+              "key": "Source|select",
+              "selectValue": "={{ $json.source }}"
+            },
+            {
+              "key": "Title |title",
+              "title": "={{ $json.title }}"
+            },
+            {
+              "key": "Recurrence|select",
+              "selectValue": "={{ $json.recurrence }}"
+            },
+            {
+              "key": "Recurrence Rule|rich_text",
+              "textContent": "={{ $json.recurrence_rule }}"
+            },
+            {
+              "key": "Status|select",
+              "selectValue": "={{ $json.status }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        624,
+        -32
+      ],
+      "id": "9f982b46-0047-4856-b716-e7ce3febfcf7",
+      "name": "Update a database page",
+      "alwaysOutputData": true,
+      "credentials": {
+        "notionApi": {
+          "id": "bI5ntlPxhyRJaF7Q",
+          "name": "Notion account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// INPUT 1: Notion reminder record (from database)\nconst db = $('Get many database pages').item.json;\n\n// INPUT 2: User update fields (from your cleaning code)\nconst upd = $(\"Clean query\").item.json;  \n\n// SAFETY: define helper to replace only non-null fields\nconst pick = (userValue, dbValue) => {\n  return (userValue !== null && userValue !== undefined && userValue !== \"\") \n    ? userValue \n    : dbValue;\n};\n\n// BUILD FINAL MERGED REMINDER OBJECT\nconst finalReminder = {\n  id: db.id,\n\n  title: pick(upd.title, db.property_title),\n  content: pick(upd.content, db.property_content),\n  due_date: pick(upd.due_date, db.property_due_date?.start),\n  status: pick(upd.status, db.property_status),\n  priority: pick(upd.priority, db.property_priority),\n  source: pick(upd.source, db.property_source),\n  recurrence: pick(upd.recurrence, db.property_recurrence),\n  recurrence_rule: pick(upd.recurrence_rule, db.property_recurrence_rule),\n\n  // KEEP ALWAYS FROM DATABASE\n  url: db.url,\n  created_at: db.property_created_at,\n  last_sent: db.property_last_sent,\n};\n\n// RETURN CLEAN RESULT\nreturn [\n  {\n    json: finalReminder\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        144,
+        -16
+      ],
+      "id": "13d0113e-98c6-4fb9-a077-2124d6344ec7",
+      "name": "Set Reminder Properties"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Raw input from n8n\nconst raw = items[0].json.query;\n\n// STEP 1 – Parse JSON safely\nlet parsed = {};\ntry {\n  parsed = JSON.parse(raw);\n} catch (e) {\n  throw new Error(\"Invalid JSON in `query`: \" + raw);\n}\n\n// STEP 2 – Extract action and parameters\nconst action = parsed.action || null;\nconst params = parsed.parameters || {};\n\n// STEP 3 – Build clean output\nconst cleaned = {\n  action,\n\n  // Dynamic parameters (kept exactly as sent)\n  parameters: params,\n\n  // Extracted known reminder fields\n  title: params.title || null,\n  content: params.content || null,\n  due_date: params.due_date || null,\n  recurrence: params.recurrence || null,\n  recurrence_rule: params.recurrence_rule || null,\n  status: params.status || null,\n  source: params.source || null,\n  priority: params.priority || null,\n};\n\n// Return cleaned object\nreturn [{ json: cleaned }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -304,
+        -16
+      ],
+      "id": "b2a0a74b-6090-4406-b9b8-5e0fe3b2de28",
+      "name": "Clean query"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "58b4c0a6-c6c9-4bc5-8dcb-773d4370bc34",
+              "name": "=text",
+              "value": "={{ $('Set Task Properties').first().json.message }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        624,
+        176
+      ],
+      "id": "75b441e3-202d-4ce8-bb87-025428debd3d",
+      "name": "No Pages Found"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Clean query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Update a database page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Pages Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many database pages": {
+      "main": [
+        [
+          {
+            "node": "Set Reminder Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean query": {
+      "main": [
+        [
+          {
+            "node": "Get many database pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Reminder Properties": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3f941ee7-025a-4a78-9fa9-38ca7be8b8bb",
+  "meta": {
+    "instanceId": "283397b980e209216969f4f25094b2758b7b470a9c4d049e94293dfa68614f79"
+  },
+  "id": "EisFVFbkIbZhsgzK",
+  "tags": []
+}
