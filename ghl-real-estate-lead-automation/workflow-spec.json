@@ -1,0 +1,38 @@
+{
+  "name": "Real Estate Lead to Appointment",
+  "platform": "GoHighLevel",
+  "status": "production-tested",
+  "trigger": {
+    "event": "customer_booked_appointment",
+    "contact_mode": "contact",
+    "calendar": "YOUR_PROPERTY_CONSULTATION_CALENDAR"
+  },
+  "actions": [
+    {
+      "order": 1,
+      "type": "create_or_update_opportunity",
+      "pipeline": "YOUR_REAL_ESTATE_PIPELINE",
+      "stage": "Appointment Booked"
+    },
+    {
+      "order": 2,
+      "type": "assign_user",
+      "assignee": "YOUR_LEAD_OWNER"
+    },
+    {
+      "order": 3,
+      "type": "internal_notification",
+      "channel": "in_app",
+      "recipient": "contact_owner",
+      "redirect_page": "contact",
+      "title": "New Property Consultation Booked",
+      "message": "A new lead has booked a property consultation. Open the contact record to review the appointment and follow up."
+    },
+    {
+      "order": 4,
+      "type": "add_contact_tag",
+      "tag": "appointment booked"
+    }
+  ]
+}
+
