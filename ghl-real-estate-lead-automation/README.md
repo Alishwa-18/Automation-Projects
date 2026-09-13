@@ -57,6 +57,3 @@ This repository intentionally excludes location IDs, workflow IDs, access tokens
 
 CRM automation, workflow design, pipeline management, lead routing, internal notifications, debugging, end-to-end testing, and privacy-safe technical documentation.
 
-## Author
-
-Muhammad Dawood
